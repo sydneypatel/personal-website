@@ -52,7 +52,7 @@ function GlobeImpl({ p, calm, q, ex, offset, dragging, tp }: Props) {
     for (const d of dots) {
       const pt = view.project(d);
       if (pt.z <= 0.02) continue;
-      const r = 0.9 + 1.3 * Math.sqrt(pt.z); // dot size: smaller at the edges for depth
+      const r = 1.1 + 1.6 * Math.sqrt(pt.z); 
       buckets[pt.z > 0.66 ? 2 : pt.z > 0.33 ? 1 : 0].push({ x: pt.x, y: pt.y, r });
     }
 
