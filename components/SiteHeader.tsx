@@ -35,8 +35,34 @@ export function SiteHeader({ page }: Props) {
     };
   }, [open]);
 
+  // Headroom: slide the header away while scrolling down, bring it back on any scroll up.
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    let lastY = window.scrollY;
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const y = window.scrollY;
+      const dy = y - lastY;
+      if (y < 80) setHidden(false); // always visible near the top
+      else if (dy > 6) setHidden(true); // scrolling down
+      else if (dy < -6) setHidden(false); // scrolling up
+      if (Math.abs(dy) > 6 || y < 80) lastY = y;
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+  // Never hide while a menu is open.
+  const isHidden = hidden && !open && !menuOpen;
+
   return (
-    <header className={s.header}>
+    <header className={s.header} data-hidden={isHidden}>
       <div className={s.row}>
         <Link href="/" className={s.brand}>
           <span className={s.dots} aria-hidden="true">
