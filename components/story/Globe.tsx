@@ -140,7 +140,7 @@ function GlobeImpl({ p, calm, q, ex, offset, dragging }: Props) {
       land: buckets.map((b) => circlesPath(b)),
       legs,
       // The story routes fade away as the job-search pins arrive.
-      legsO: 1 - job,
+      legsO: 1,
       pins,
       photos,
     };
