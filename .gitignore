@@ -1,0 +1,14 @@
+node_modules
+.next
+out
+.env*.local
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+
+# Raw Flighty export (dates, flight numbers). Only aggregated data/flights.json is committed.
+data/private/*
+!data/private/.gitkeep
+
+# setup files
+docs/EDITING.md
