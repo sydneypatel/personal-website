@@ -2,6 +2,7 @@ import Link from "next/link";
 import flights from "@/data/flights.json";
 import { projects, route } from "@/data/projects";
 import { site } from "@/data/site";
+import { currently } from "@/data/currently";
 import { palette } from "@/lib/colors";
 import { newTab } from "@/lib/links";
 import s from "./sections.module.css";
@@ -18,14 +19,34 @@ export function Postcards() {
             <span className={s.blink} aria-hidden="true" />
             Currently
           </span>
-          <ul className={s.currentlyList}>
-            {site.currently.map((c) => (
-              <li key={c.label}>
-                <span className="mono-label" style={{ color: palette[c.color].ink }}>{c.label}</span>
-                <span>{c.text}</span>
-              </li>
-            ))}
-          </ul>
+          <div className={s.currentlyCols}>
+            <div>
+              <h3 className={`mono-label ${s.currentlyHead}`} style={{ color: palette.nyc.ink }}>School</h3>
+              <ul className={s.currentlyList}>
+                {currently.school.map((c) => (
+                  <li key={c.name}><strong>{c.name}</strong>, {c.text}</li>
+                ))}
+              </ul>
+            </div>
+            <div className={s.currentlyStack}>
+              <div>
+                <h3 className={`mono-label ${s.currentlyHead}`} style={{ color: palette.australia.ink }}>Personal</h3>
+                <ul className={s.currentlyList}>
+                  {currently.personal.map((c) => (
+                    <li key={c.name}><strong>{c.name}</strong>, {c.text}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h3 className={`mono-label ${s.currentlyHead}`} style={{ color: palette.nashville.ink }}>Learning</h3>
+                <ul className={s.currentlyList}>
+                  {currently.learning.map((c) => (
+                    <li key={c}>{c}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
         <div className={s.cards}>
           {projects.map((p) => (
