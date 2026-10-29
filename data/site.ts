@@ -43,7 +43,7 @@ export const chapters: Chapter[] = [
     color: "boston",
     nav: "Boston",
     kicker: "Boston, Massachusetts · 42.36° N, 71.06° W",
-    headline: ["I grew up in ", "Boston", "."],
+    headline: ["I grew up outside of ", "Boston", "."],
     body: "Home base, and the first pin on the map. (Go Pats.)",
     view: [-46, 28],
     place: { name: "Boston", at: [-71.06, 42.36] },

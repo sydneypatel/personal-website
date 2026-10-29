@@ -8,7 +8,7 @@ import { newTab } from "@/lib/links";
 import { useA11y } from "./A11yProvider";
 import s from "./SiteHeader.module.css";
 
-type Props = { page: "home" | "wishlist" };
+type Props = { page: "home" | "wishlist" | "travels" };
 
 export function SiteHeader({ page }: Props) {
   const { calm, contrast, setCalm, setContrast } = useA11y();
@@ -61,9 +61,6 @@ export function SiteHeader({ page }: Props) {
           <a className={s.link} href={anchor("itinerary")}>Itinerary</a>
           <a className={s.link} href={anchor("postcards")}>Postcards</a>
           <a className={s.link} href={anchor("flightlog")}>Flight log</a>
-          <Link className={s.link} href="/wishlist" aria-current={page === "wishlist" ? "page" : undefined}>
-            Wish list
-          </Link>
           <a className={s.link} href={site.links.github} {...newTab(site.links.github)}>GitHub ↗</a>
 
           <div className={s.a11yWrap} ref={wrapRef}>
@@ -93,21 +90,6 @@ export function SiteHeader({ page }: Props) {
         </nav>
       </div>
 
-      {home && (
-        <div className={s.currently}>
-          <div className={s.currentlyRow}>
-            <span className={`${s.currentlyLabel} mono-label`}>
-              <span className={s.blink} aria-hidden="true" />
-              Currently
-            </span>
-            {site.currently.map((c) => (
-              <span key={c.label}>
-                <span style={{ color: palette[c.color].ink }}>{c.label} ·</span> {c.text}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
     </header>
   );
 }

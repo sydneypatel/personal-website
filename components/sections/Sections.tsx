@@ -1,3 +1,4 @@
+import Link from "next/link";
 import flights from "@/data/flights.json";
 import { projects, route } from "@/data/projects";
 import { site } from "@/data/site";
@@ -12,6 +13,20 @@ export function Postcards() {
         <p className="mono-label" style={{ color: palette.boston.ink, margin: "0 0 12px" }}>Postcards</p>
         <h2 className={s.h2}>Things I&apos;ve built</h2>
         <p className={s.lede}>Souvenirs from the trip so far. Apps I&apos;ve shipped solo, and projects built with teams.</p>
+        <div className={s.currently}>
+          <span className={`mono-label ${s.currentlyLabel}`}>
+            <span className={s.blink} aria-hidden="true" />
+            Currently
+          </span>
+          <ul className={s.currentlyList}>
+            {site.currently.map((c) => (
+              <li key={c.label}>
+                <span className="mono-label" style={{ color: palette[c.color].ink }}>{c.label}</span>
+                <span>{c.text}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
         <div className={s.cards}>
           {projects.map((p) => (
             <article key={p.name} className={s.card}>
@@ -36,7 +51,8 @@ export function Postcards() {
   );
 }
 
-export function FlightLog() {
+/** Flight totals from Flighty. Lives on the Travels page. */
+export function FlightStats() {
   const st = flights.stats;
   const month = (ym: string) => new Date(`${ym}-15`).toLocaleDateString("en-US", { month: "short", year: "numeric" });
   const stats = [
@@ -45,6 +61,24 @@ export function FlightLog() {
     { n: String(st.airports), label: "Airports", color: palette.australia.ink },
     { n: String(st.countries), label: "Countries & territories", color: palette.nyc.ink },
   ];
+  return (
+    <div className={s.statsWrap}>
+      <div className={s.stats}>
+        {stats.map((x) => (
+          <div key={x.label}>
+            <div className={s.statN} style={{ color: x.color }}>{x.n}</div>
+            <div className={`mono-label ${s.statLabel}`}>{x.label}</div>
+          </div>
+        ))}
+      </div>
+      <p className={s.statNote}>
+        Logged in Flighty, {month(st.from)} – {month(st.to)}. Every route is drawn on the globe on the home page.
+      </p>
+    </div>
+  );
+}
+
+export function FlightLog() {
   return (
     <section id="flightlog" className={`${s.section} ${s.deep}`}>
       <div className="container">
@@ -55,20 +89,6 @@ export function FlightLog() {
             <p className={s.lede} style={{ margin: 0 }}>Every stop, every role, in the order I flew it.</p>
           </div>
           <a href={site.links.resume} className="pill pill--ink" {...newTab(site.links.resume)}>Download résumé (PDF) ↓</a>
-        </div>
-
-        <div className={s.statsWrap}>
-          <div className={s.stats}>
-            {stats.map((x) => (
-              <div key={x.label}>
-                <div className={s.statN} style={{ color: x.color }}>{x.n}</div>
-                <div className={`mono-label ${s.statLabel}`}>{x.label}</div>
-              </div>
-            ))}
-          </div>
-          <p className={s.statNote}>
-            Logged in Flighty, {month(st.from)} – {month(st.to)}. Every route is drawn on the globe up top.
-          </p>
         </div>
 
         <div className={s.route}>
@@ -119,11 +139,22 @@ export function Contact() {
           <a href={site.links.linkedin} {...newTab(site.links.linkedin)}>LinkedIn ↗</a>
           <a href={site.links.resume} {...newTab(site.links.resume)}>Résumé ↓</a>
         </div>
-        <footer className={s.footer}>
-          <span>© {new Date().getFullYear()} {site.name}</span>
-          <span>Made in New York</span>
-        </footer>
+        <SiteFooter />
       </div>
     </section>
+  );
+}
+
+/** Footer shared by every page. Travels and the wish list are linked from here. */
+export function SiteFooter() {
+  return (
+    <footer className={s.footer}>
+      <span>© {new Date().getFullYear()} {site.name}</span>
+      <nav aria-label="More" className={s.footerLinks}>
+        <Link href="/travels">Travels</Link>
+        <Link href="/wishlist">Wish list</Link>
+      </nav>
+      <span>Made in New York</span>
+    </footer>
   );
 }

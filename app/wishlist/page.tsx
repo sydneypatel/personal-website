@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/SiteHeader";
 import { WishList } from "@/components/wishlist/WishList";
+import { SiteFooter } from "@/components/sections/Sections";
 import { wishlist } from "@/data/wishlist";
-import { site } from "@/data/site";
 import { palette } from "@/lib/colors";
 
 export const metadata: Metadata = {
@@ -26,12 +26,10 @@ export default function WishListPage() {
           Been to one of these? I&apos;d genuinely love to hear about it: where to eat, who to meet, what surprised you.
         </p>
         <WishList />
-        <footer
-          style={{ marginTop: 72, paddingTop: 20, borderTop: "1px solid rgba(30,29,27,0.25)", display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: "8px 24px", fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--muted)" }}
-        >
-          <Link href="/" style={{ padding: "10px 0" }}>← Back to the globe</Link>
-          <span style={{ padding: "10px 0" }}>© {new Date().getFullYear()} {site.name}</span>
-        </footer>
+        <div style={{ marginTop: 72 }}>
+          <Link href="/" style={{ fontFamily: "var(--font-mono)", fontSize: 12, padding: "10px 0", display: "inline-block" }}>← Back to the globe</Link>
+          <SiteFooter />
+        </div>
       </main>
     </>
   );
