@@ -2,9 +2,7 @@
 
 import { memo, useId, useMemo } from "react";
 import landDots from "@/data/land-dots.json";
-import flights from "@/data/flights.json";
 import { chapters, jobPins, storyLegs, type LonLat } from "@/data/site";
-import { wishlist } from "@/data/wishlist";
 import { palette, ink, paper } from "@/lib/colors";
 import { circlesPath, clamp01, graticule, legLine, lerpView, makeView } from "@/lib/globe";
 import s from "./Story.module.css";
@@ -20,8 +18,6 @@ type Props = {
 };
 
 const dots = landDots as unknown as LonLat[];
-const airports = flights.airports as unknown as Record<string, LonLat>;
-const routes = flights.routes as unknown as [string, string][];
 
 function GlobeImpl({ q, ex, offset, dragging }: Props) {
   const hatchId = useId().replace(/:/g, "");
@@ -43,21 +39,6 @@ function GlobeImpl({ q, ex, offset, dragging }: Props) {
       buckets[p.z > 0.66 ? 2 : p.z > 0.33 ? 1 : 0].push({ x: p.x, y: p.y, r });
     }
 
-    // Every real flight from Flighty, shown once the globe is explorable.
-    let flightPath = "";
-    const airportDots: { x: number; y: number; r: number }[] = [];
-    if (ex > 0) {
-      flightPath =
-        view.path({
-          type: "MultiLineString",
-          coordinates: routes.map(([a, b]) => legLine(airports[a], airports[b], 1, 24)),
-        }) ?? "";
-      for (const code in airports) {
-        const p = view.project(airports[code]);
-        if (p.z > 0.05) airportDots.push({ x: p.x, y: p.y, r: 3 });
-      }
-    }
-
     const legs = storyLegs.flatMap((leg) => {
       const f = clamp01(q - leg.chapter);
       if (f <= 0) return [];
@@ -66,13 +47,15 @@ function GlobeImpl({ q, ex, offset, dragging }: Props) {
       return [{ d: view.path({ type: "LineString", coordinates: pts }) ?? "", color: palette[leg.color].fill, head, showHead: f < 1 && head.z > 0 }];
     });
 
-    const pins: { key: string; x: number; y: number; r: number; color: string; ring: number; ringR: number; label: string; labelO: number; o: number }[] = [];
+    type Pin = { key: string; x: number; y: number; r: number; color: string; ring: number; ringR: number; label: string; labelO: number; o: number; delay?: number };
+    const pins: Pin[] = [];
+    // Job-search cities: no labels, they pop in one by one and twinkle at their own pace.
     if (job > 0) {
-      for (const j of jobPins) {
+      jobPins.forEach((j, i) => {
         const p = view.project(j.at);
-        if (p.z <= 0.05) continue;
-        pins.push({ key: j.name, x: p.x, y: p.y, r: 5, color: palette.open.fill, ring: job * 0.5, ringR: 12, label: j.name, labelO: ex * clamp01((p.z - 0.3) / 0.3), o: job });
-      }
+        if (p.z <= 0.05) return;
+        pins.push({ key: j.name, x: p.x, y: p.y, r: 5, color: palette.open.fill, ring: 0.45, ringR: 12, label: "", labelO: 0, o: job, delay: i });
+      });
     }
     chapters.forEach((ch, i) => {
       if (!ch.place) return;
@@ -108,13 +91,6 @@ function GlobeImpl({ q, ex, offset, dragging }: Props) {
       else kept.push(box);
     }
 
-    const dreams = ex > 0
-      ? wishlist.flatMap((w) => {
-          const p = view.project(w.at);
-          return p.z > 0.05 ? [{ key: w.name, x: p.x, y: p.y, label: `${w.name} ?`, o: ex * clamp01((p.z - 0.05) / 0.25) }] : [];
-        })
-      : [];
-
     // Polaroids: one per chapter while you're on it, plus the nearest home in explore mode.
     const photos: { key: string; x: number; y: number; rot: number; o: number; caption: string; sub: string; src?: string; tape: string; capInk: string }[] = [];
     const place = (at: LonLat | undefined) => {
@@ -149,11 +125,10 @@ function GlobeImpl({ q, ex, offset, dragging }: Props) {
     return {
       graticule: view.path(graticule) ?? "",
       land: buckets.map((b) => circlesPath(b)),
-      flightPath,
-      airportPath: circlesPath(airportDots),
       legs,
+      // The story routes fade away as the job-search pins arrive.
+      legsO: 1 - job,
       pins,
-      dreams,
       photos,
     };
   }, [q, ex, offset, dragging]);
@@ -171,38 +146,36 @@ function GlobeImpl({ q, ex, offset, dragging }: Props) {
       <path d={g.land[1]} fill={ink} fillOpacity="0.5" />
       <path d={g.land[2]} fill={ink} fillOpacity="0.7" />
 
-      {ex > 0 && (
-        <g style={{ opacity: ex }}>
-          <path d={g.flightPath} fill="none" stroke={ink} strokeOpacity="0.32" strokeWidth="1.3" strokeLinecap="round" />
-          <path d={g.airportPath} fill={ink} fillOpacity="0.55" />
+      {g.legsO > 0.01 && (
+        <g style={{ opacity: g.legsO }}>
+          {g.legs.map((l, i) => (
+            <g key={i}>
+              <path d={l.d} fill="none" stroke={l.color} strokeWidth="3" strokeDasharray="8 7" strokeLinecap="round" />
+              {l.showHead && <circle cx={l.head.x} cy={l.head.y} r="6" fill={l.color} />}
+            </g>
+          ))}
         </g>
       )}
 
-      {g.legs.map((l, i) => (
-        <g key={i}>
-          <path d={l.d} fill="none" stroke={l.color} strokeWidth="3" strokeDasharray="8 7" strokeLinecap="round" />
-          {l.showHead && <circle cx={l.head.x} cy={l.head.y} r="6" fill={l.color} />}
-        </g>
-      ))}
-
       {g.pins.map((p) => (
         <g key={p.key} style={{ opacity: p.o }}>
-          {p.ring > 0.01 && <circle className={s.pulse} cx={p.x} cy={p.y} r={p.ringR} fill="none" stroke={p.color} strokeWidth="2" style={{ opacity: p.ring }} />}
-          <circle cx={p.x} cy={p.y} r={p.r} fill={p.color} stroke={paper} strokeWidth="2" />
+          {p.delay !== undefined ? (
+            // Job pin: pops in on its own beat, then twinkles at an uneven rhythm.
+            <g className={s.pop} style={{ animationDelay: `${p.delay * 0.22}s` }}>
+              <circle className={s.pulse} cx={p.x} cy={p.y} r={p.ringR} fill="none" stroke={p.color} strokeWidth="2" style={{ opacity: p.ring, animationDelay: `${(p.delay * 0.83) % 2.6}s`, animationDuration: `${2.6 + (p.delay % 3) * 0.9}s` }} />
+              <circle className={s.twinkle} cx={p.x} cy={p.y} r={p.r} fill={p.color} stroke={paper} strokeWidth="2" style={{ animationDelay: `${(p.delay * 1.37) % 4}s`, animationDuration: `${3.4 + (p.delay % 4) * 0.8}s` }} />
+            </g>
+          ) : (
+            <>
+              {p.ring > 0.01 && <circle className={s.pulse} cx={p.x} cy={p.y} r={p.ringR} fill="none" stroke={p.color} strokeWidth="2" style={{ opacity: p.ring }} />}
+              <circle cx={p.x} cy={p.y} r={p.r} fill={p.color} stroke={paper} strokeWidth="2" />
+            </>
+          )}
           {p.labelO > 0.01 && (
             <text x={p.x + p.r + 12} y={p.y + 6} className={s.pinLabel} style={{ opacity: p.labelO }}>
               {p.label}
             </text>
           )}
-        </g>
-      ))}
-
-      {g.dreams.map((d) => (
-        <g key={d.key} style={{ opacity: d.o }}>
-          <circle cx={d.x} cy={d.y} r="8" fill={paper} stroke={ink} strokeWidth="2" strokeDasharray="3 3" />
-          <text x={d.x + 14} y={d.y + 5} className={`${s.pinLabel} ${s.dreamLabel}`}>
-            {d.label}
-          </text>
         </g>
       ))}
 
