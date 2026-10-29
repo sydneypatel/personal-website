@@ -23,11 +23,14 @@ type Props = {
   dragging: boolean;
   /** World-tour progress for chapter 4, 0 … 1. */
   tp: number;
+  /** Pin the visitor clicked to open its polaroid: "ch:<index>" or "tour:<stop>" (or null). */
+  picked: string | null;
+  onPick: (key: string) => void;
 };
 
 const dots = landDots as unknown as LonLat[];
 
-function GlobeImpl({ p, calm, q, ex, offset, dragging, tp }: Props) {
+function GlobeImpl({ p, calm, q, ex, offset, dragging, tp, picked, onPick }: Props) {
   const hatchId = useId().replace(/:/g, "");
 
   const g = useMemo(() => {
@@ -52,7 +55,7 @@ function GlobeImpl({ p, calm, q, ex, offset, dragging, tp }: Props) {
     for (const d of dots) {
       const pt = view.project(d);
       if (pt.z <= 0.02) continue;
-      const r = 1.1 + 1.6 * Math.sqrt(pt.z); 
+      const r = 0.9 + 1.3 * Math.sqrt(pt.z); // dot size: smaller at the edges for depth
       buckets[pt.z > 0.66 ? 2 : pt.z > 0.33 ? 1 : 0].push({ x: pt.x, y: pt.y, r });
     }
 
@@ -75,12 +78,21 @@ function GlobeImpl({ p, calm, q, ex, offset, dragging, tp }: Props) {
         tourLegs.push({ d: view.path({ type: "LineString", coordinates: pts }) ?? "", color: palette.world.fill, head: h, showHead: f < 1 && h.z > 0 });
       }
     }
-    const tourStops = tp > 0 && tp < 1
-      ? worldTour.slice(1, hop + (travel >= 1 ? 2 : 1)).flatMap((st, i) => {
-          const pt = view.project(st.at);
-          return pt.z > 0.05 ? [{ key: `${st.name}-${i}`, x: pt.x, y: pt.y }] : [];
-        })
-      : [];
+    // Travel stops: a small purple dot appears at each stop as the trip reaches it and stays afterwards.
+    // Home places (Sydney, Nashville) already have their own pins, so they're skipped here.
+    const homeNames = new Set(chapters.flatMap((ch) => (ch.place ? [ch.place.name] : [])));
+    const tourStops: { name: string; x: number; y: number }[] = [];
+    if (tp > 0) {
+      const seen = new Set<string>();
+      worldTour.forEach((st, k) => {
+        if (k === 0 || homeNames.has(st.name) || seen.has(st.name)) return;
+        const arrived = tp >= 1 || hopPos >= k - 1 + 0.75;
+        if (!arrived) return;
+        seen.add(st.name);
+        const pt = view.project(st.at);
+        if (pt.z > 0.05) tourStops.push({ name: st.name, x: pt.x, y: pt.y });
+      });
+    }
 
     type Pin = { key: string; x: number; y: number; r: number; color: string; ring: number; ringR: number; label: string; labelO: number; o: number; delay?: number };
     const pins: Pin[] = [];
@@ -92,22 +104,26 @@ function GlobeImpl({ p, calm, q, ex, offset, dragging, tp }: Props) {
         pins.push({ key: j.name, x: p.x, y: p.y, r: 5, color: palette.open.fill, ring: 0.45, ringR: 12, label: "", labelO: 0, o: job, delay: i });
       });
     }
+    const pinButtons: { key: string; name: string; x: number; y: number }[] = tourStops.map((t) => ({ key: `tour:${t.name}`, name: t.name, x: t.x, y: t.y }));
     chapters.forEach((ch, i) => {
       if (!ch.place) return;
       const p = view.project(ch.place.at);
       if (p.z <= 0.05) return;
       const reached = clamp01((q - i + 0.6) / 0.4);
       if (reached <= 0) return;
+      if (ch.photo && reached > 0.5 && p.z > 0.25) pinButtons.push({ key: `ch:${i}`, name: ch.place.name, x: p.x, y: p.y });
+      // Boston and New York are the top job targets: same size and color as the other home pins,
+      // with a soft ring once "Open to work" starts.
       const big = ch.place.name === "Boston" || ch.place.name === "New York" ? job : 0;
       const act = near(i);
       pins.push({
         key: ch.place.name,
         x: p.x,
         y: p.y,
-        r: 5 + 3 * act + 6 * big,
-        color: big > 0.5 ? palette.open.fill : palette[ch.color].fill,
-        ring: Math.max(act, big),
-        ringR: 16 + 14 * big,
+        r: 5 + 3 * act,
+        color: palette[ch.color].fill,
+        ring: Math.max(act, big * 0.7),
+        ringR: 16,
         label: ch.place.name,
         labelO: Math.max(act, big, ex),
         o: reached,
@@ -126,7 +142,7 @@ function GlobeImpl({ p, calm, q, ex, offset, dragging, tp }: Props) {
       else kept.push(box);
     }
 
-    // Polaroids: one per chapter while you're on it, plus the nearest home in explore mode.
+    // Polaroids: one per chapter while you scroll through it. At "Open to work" they only appear when a pin is clicked.
     const photos: { key: string; x: number; y: number; rot: number; scale?: number; o: number; caption: string; sub: string; src?: string; tape: string; capInk: string }[] = [];
     const place = (at: LonLat | undefined) => {
       if (!at) return { x: 110, y: 560 }; // no pin (the world tour): lower left, out of the route's way
@@ -134,7 +150,19 @@ function GlobeImpl({ p, calm, q, ex, offset, dragging, tp }: Props) {
       if (p.z <= 0) return null;
       return { x: Math.max(60, Math.min(560, p.x - 300)), y: Math.max(40, Math.min(560, p.y - 330)) };
     };
-    chapters.forEach((ch, i) => {
+    // A pin was clicked: show that place's photo next to it.
+    const pickedCh = picked?.startsWith("ch:") ? chapters[Number(picked.slice(3))] : null;
+    const pickedStop = picked?.startsWith("tour:") ? worldTour.find((st) => st.name === picked.slice(5)) : null;
+    if (pickedCh?.photo && pickedCh.place) {
+      const pos = place(pickedCh.place.at);
+      if (pos) photos.push({ key: `picked-${pickedCh.num}`, x: pos.x, y: pos.y, rot: pickedCh.photo.rotate, scale: 1, o: 1, caption: pickedCh.photo.caption, sub: pickedCh.photo.sub, src: pickedCh.photo.src, tape: palette[pickedCh.color].fill, capInk: palette[pickedCh.color].ink });
+    }
+    if (pickedStop) {
+      const pos = place(pickedStop.at);
+      if (pos) photos.push({ key: `picked-${pickedStop.name}`, x: pos.x, y: pos.y, rot: pickedStop.photo?.rotate ?? 3, scale: 1, o: 1, caption: pickedStop.photo?.caption ?? `[Photo · ${pickedStop.name}]`, sub: pickedStop.photo?.sub ?? "Travels", src: pickedStop.photo?.src, tape: palette.world.fill, capInk: palette.world.ink });
+    }
+    const anyPicked = Boolean(pickedCh || pickedStop);
+    if (!anyPicked) chapters.forEach((ch, i) => {
       if (!ch.photo) return;
       // Timed on raw scroll: the old photo lifts away as the globe starts turning,
       // the new one is set down once the globe has nearly arrived.
@@ -151,21 +179,6 @@ function GlobeImpl({ p, calm, q, ex, offset, dragging, tp }: Props) {
       const scale = calm ? 1 : 1.05 - 0.05 * e;
       photos.push({ key: ch.num, x: pos.x, y: pos.y + dy, rot: ch.photo.rotate + tilt, scale, o, caption: ch.photo.caption, sub: ch.photo.sub, src: ch.photo.src, tape: palette[ch.color].fill, capInk: palette[ch.color].ink });
     });
-    if (ex >= 1 && !dragging) {
-      let best: { i: number; z: number } | null = null;
-      chapters.forEach((ch, i) => {
-        if (!ch.place || !ch.photo) return;
-        const z = view.project(ch.place.at).z;
-        if (!best || z > best.z) best = { i, z };
-      });
-      const b = best as { i: number; z: number } | null;
-      if (b && b.z > 0.8) {
-        const ch = chapters[b.i];
-        const pos = place(ch.place!.at);
-        if (pos && ch.photo) photos.push({ key: `explore-${ch.num}`, x: pos.x, y: pos.y, rot: ch.photo.rotate, o: clamp01((b.z - 0.8) / 0.1), caption: ch.photo.caption, sub: ch.photo.sub, src: ch.photo.src, tape: palette[ch.color].fill, capInk: palette[ch.color].ink });
-      }
-    }
-
     return {
       graticule: view.path(graticule) ?? "",
       land: buckets.map((b) => circlesPath(b)),
@@ -174,11 +187,13 @@ function GlobeImpl({ p, calm, q, ex, offset, dragging, tp }: Props) {
       // The colored story routes stay visible all the way through "Open to work".
       legsO: 1,
       pins,
+      pinButtons,
       photos,
     };
-  }, [p, calm, q, ex, offset, dragging, tp]);
+  }, [p, calm, q, ex, offset, dragging, tp, picked]);
 
   return (
+    <>
     <svg viewBox="0 0 1000 1000" width="100%" height="100%" className={s.globeSvg} aria-hidden="true">
       <defs>
         <pattern id={hatchId} width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
@@ -203,7 +218,7 @@ function GlobeImpl({ p, calm, q, ex, offset, dragging, tp }: Props) {
       )}
 
       {g.tourStops.map((t) => (
-        <circle key={t.key} cx={t.x} cy={t.y} r="4.5" fill={palette.world.fill} stroke={paper} strokeWidth="1.5" />
+        <circle key={t.name} cx={t.x} cy={t.y} r="5" fill={palette.world.fill} stroke={paper} strokeWidth="2" />
       ))}
 
       {g.pins.map((p) => (
@@ -250,6 +265,19 @@ function GlobeImpl({ p, calm, q, ex, offset, dragging, tp }: Props) {
         </g>
       ))}
     </svg>
+      {/* Real buttons over the home pins: click (or tap, or Enter) to open that place's photo. */}
+      {g.pinButtons.map((b) => (
+        <button
+          key={b.key}
+          type="button"
+          className={s.pinBtn}
+          style={{ left: `${b.x / 10}%`, top: `${b.y / 10}%` }}
+          aria-label={`Show my ${b.name} photo`}
+          aria-pressed={picked === b.key}
+          onClick={() => onPick(b.key)}
+        />
+      ))}
+    </>
   );
 }
 

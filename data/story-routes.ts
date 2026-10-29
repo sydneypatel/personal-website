@@ -14,7 +14,14 @@ export const storyLegs: { from: LonLat; to: LonLat; chapter: number; color: Chap
  * Chapter 4 ("The world"): an animated trip the globe follows, hop by hop.
  * Edit the stops to change the route; each hop gets equal time.
  */
-export const worldTour: { name: string; at: LonLat }[] = [
+export type TravelPhoto = { caption: string; sub: string; rotate?: number; src?: string };
+
+/**
+ * Each stop can have a photo that opens when someone clicks its dot, e.g.
+ * { name: "Tokyo", at: [...], photo: { caption: "Shibuya at night", sub: "Japan, 2025", src: "/photos/tokyo.webp" } }
+ * Stops without one show a placeholder.
+ */
+export const worldTour: { name: string; at: LonLat; photo?: TravelPhoto }[] = [
   { name: "Sydney", at: [151.21, -33.87] },
   { name: "Tokyo", at: [139.69, 35.69] },
   { name: "Bangkok", at: [100.5, 13.75] },

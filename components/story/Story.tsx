@@ -24,6 +24,8 @@ export function Story() {
   const [dragging, setDragging] = useState(false);
   const [touring, setTouring] = useState(false);
   const [tp, setTp] = useState(0); // world-tour progress, 0 … 1
+  const [picked, setPicked] = useState<string | null>(null); // photo opened by clicking a pin
+  const onPick = useCallback((key: string) => setPicked((cur) => (cur === key ? null : key)), []);
 
   const live = useRef({ calm, dragging, touring, p, lastTouch: 0, offset });
   live.current = { ...live.current, calm, dragging, touring, p, offset };
@@ -191,6 +193,9 @@ export function Story() {
     return () => cancelAnimationFrame(raf);
   }, []);
 
+  // Moving to another chapter closes a photo that was opened by clicking a pin.
+  useEffect(() => setPicked(null), [active]);
+
   const current = chapters[Math.max(0, Math.min(LAST, active))];
   const hintVisible = touring || p < 0.3;
 
@@ -198,7 +203,7 @@ export function Story() {
     <section id="itinerary" ref={sectionRef} className={s.section} aria-label="My story so far">
       <div className={s.stage}>
         <div className={s.globeWrap}>
-          <Globe p={p} calm={calm} q={q} ex={ex} offset={offset} dragging={dragging} tp={tp} />
+          <Globe p={p} calm={calm} q={q} ex={ex} offset={offset} dragging={dragging} tp={tp} picked={picked} onPick={onPick} />
           <div
             className={s.hit}
             style={{ pointerEvents: ex >= 1 ? "auto" : "none", cursor: dragging ? "grabbing" : "grab" }}
