@@ -4,6 +4,14 @@
   z-index: 40;
   background: var(--paper);
   border-bottom: 1px solid var(--rule);
+  transition: transform 0.3s ease;
+}
+.header[data-hidden="true"] {
+  transform: translateY(-100%);
+}
+/* Keyboard users: tabbing into the nav always brings it back. */
+.header:focus-within {
+  transform: none;
 }
 
 .row {
