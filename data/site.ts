@@ -15,7 +15,7 @@ export const site = {
     resume: "/Sydney_Patel_Resume.pdf", 
   },
   currently: [
-    { label: "School", color: "nyc", text: "Building Willow, a check-in app for older adults" },
+    { label: "School", color: "nyc", text: "Building Willow, a check-in app for older adults\nBuilding HypeCheck, a _____\n" },
     { label: "Personal", color: "australia", text: "Cooking up My Kitchen, a meal-prep planner" },
     { label: "Learning", color: "nashville", text: "[new tool or language]" },
   ] as { label: string; color: ChapterColor; text: string }[],
