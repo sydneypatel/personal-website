@@ -94,7 +94,7 @@ function GlobeImpl({ p, calm, q, ex, offset, dragging, tp, picked, onPick }: Pro
       });
     }
 
-    type Pin = { key: string; x: number; y: number; r: number; color: string; ring: number; ringR: number; label: string; labelO: number; o: number; delay?: number };
+    type Pin = { key: string; x: number; y: number; r: number; color: string; ring: number; ringR: number; label: string; labelO: number; o: number; delay?: number; lx?: number; ly?: number; anchor?: "start" | "end" };
     const pins: Pin[] = [];
     // Job-search cities: no labels, they pop in one by one and twinkle at their own pace.
     if (job > 0) {
@@ -130,16 +130,32 @@ function GlobeImpl({ p, calm, q, ex, offset, dragging, tp, picked, onPick }: Pro
       });
     });
 
-    // Keep labels from piling on top of each other: home places win, then job cities.
+    // Place labels so they never pile up: try right, below, left, then above each pin;
+    // only hide a label if every spot is taken. The current chapter's place goes first.
     const kept: { x0: number; x1: number; y0: number; y1: number }[] = [];
     const order = [...pins].sort((a, b) => b.r - a.r);
     for (const p of order) {
       if (p.labelO <= 0.01) continue;
-      const x0 = p.x + p.r + 10;
-      const box = { x0, x1: x0 + p.label.length * 10.4, y0: p.y - 12, y1: p.y + 10 };
-      const hit = kept.some((k) => box.x0 < k.x1 && box.x1 > k.x0 && box.y0 < k.y1 && box.y1 > k.y0);
-      if (hit) p.labelO = 0;
-      else kept.push(box);
+      const w = p.label.length * 10.4;
+      const gap = p.r + 10;
+      const spots: { lx: number; ly: number; anchor: "start" | "end"; x0: number }[] = [
+        { lx: p.x + gap, ly: p.y + 6, anchor: "start", x0: p.x + gap }, // right
+        { lx: p.x + gap - 4, ly: p.y + 26, anchor: "start", x0: p.x + gap - 4 }, // below-right
+        { lx: p.x - gap, ly: p.y + 6, anchor: "end", x0: p.x - gap - w }, // left
+        { lx: p.x + gap - 4, ly: p.y - 14, anchor: "start", x0: p.x + gap - 4 }, // above-right
+      ];
+      const fit = spots.find((sp) => {
+        const box = { x0: sp.x0, x1: sp.x0 + w, y0: sp.ly - 18, y1: sp.ly + 4 };
+        return !kept.some((k) => box.x0 < k.x1 && box.x1 > k.x0 && box.y0 < k.y1 && box.y1 > k.y0);
+      });
+      if (!fit) {
+        p.labelO = 0;
+        continue;
+      }
+      p.lx = fit.lx;
+      p.ly = fit.ly;
+      p.anchor = fit.anchor;
+      kept.push({ x0: fit.x0, x1: fit.x0 + w, y0: fit.ly - 18, y1: fit.ly + 4 });
     }
 
     // Polaroids: one per chapter while you scroll through it. At "Open to work" they only appear when a pin is clicked.
@@ -236,7 +252,7 @@ function GlobeImpl({ p, calm, q, ex, offset, dragging, tp, picked, onPick }: Pro
             </>
           )}
           {p.labelO > 0.01 && (
-            <text x={p.x + p.r + 12} y={p.y + 6} className={s.pinLabel} style={{ opacity: p.labelO }}>
+            <text x={p.lx ?? p.x + p.r + 12} y={p.ly ?? p.y + 6} textAnchor={p.anchor ?? "start"} className={s.pinLabel} style={{ opacity: p.labelO }}>
               {p.label}
             </text>
           )}
