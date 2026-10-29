@@ -1,15 +1,19 @@
 "use client";
 
 import { memo, useId, useMemo } from "react";
+import { geoInterpolate } from "d3-geo";
 import landDots from "@/data/land-dots.json";
-import flights from "@/data/flights.json";
-import { chapters, jobPins, storyLegs, type LonLat } from "@/data/site";
-import { wishlist } from "@/data/wishlist";
+import { chapters, jobPins, type LonLat } from "@/data/site";
+import { storyLegs, worldTour } from "@/data/story-routes";
 import { palette, ink, paper } from "@/lib/colors";
-import { circlesPath, clamp01, graticule, legLine, lerpView, makeView } from "@/lib/globe";
+import { circlesPath, clamp01, easeInOutCubic, graticule, legLine, lerpView, makeView } from "@/lib/globe";
 import s from "./Story.module.css";
 
 type Props = {
+  /** Raw scroll progress (linear), used to time the polaroids. */
+  p: number;
+  /** Visitor asked for less motion: polaroids only fade. */
+  calm: boolean;
   /** Eased story progress, 0 (Boston) … 5 (Open to work). */
   q: number;
   /** Explore-mode amount, 0 … 1. */
@@ -17,18 +21,30 @@ type Props = {
   /** Extra rotation from dragging, in degrees. */
   offset: LonLat;
   dragging: boolean;
+  /** World-tour progress for chapter 4, 0 … 1. */
+  tp: number;
+  /** Pin the visitor clicked to open its polaroid: "ch:<index>" or "tour:<stop>" (or null). */
+  picked: string | null;
+  onPick: (key: string) => void;
 };
 
 const dots = landDots as unknown as LonLat[];
-const airports = flights.airports as unknown as Record<string, LonLat>;
-const routes = flights.routes as unknown as [string, string][];
 
-function GlobeImpl({ q, ex, offset, dragging }: Props) {
+function GlobeImpl({ p, calm, q, ex, offset, dragging, tp, picked, onPick }: Props) {
   const hatchId = useId().replace(/:/g, "");
 
   const g = useMemo(() => {
+    // World tour (chapter 4): which hop we're on and where the traveler is right now.
+    const hops = worldTour.length - 1;
+    const hopPos = tp * hops;
+    const hop = Math.min(hops - 1, Math.floor(hopPos));
+    const travel = easeInOutCubic(clamp01((hopPos - hop) / 0.75)); // last 25% of each hop = pause at the stop
+    const head = geoInterpolate(worldTour[hop].at, worldTour[hop + 1].at)(tp >= 1 ? 1 : travel) as LonLat;
+    const tourCenter: LonLat = [head[0], Math.max(-30, Math.min(40, head[1]))];
+    const viewOf = (i: number): LonLat => (i === 3 ? tourCenter : chapters[i].view);
+
     const qi = Math.min(chapters.length - 2, Math.floor(q));
-    const base = lerpView(chapters[qi].view, chapters[qi + 1].view, q - qi);
+    const base = lerpView(viewOf(qi), viewOf(qi + 1), q - qi);
     const center: LonLat = [base[0] + offset[0] * ex, Math.max(-80, Math.min(80, base[1] + offset[1] * ex))];
     const view = makeView(center);
     const near = (c: number) => clamp01(1 - Math.abs(q - c) * 1.6);
@@ -37,25 +53,10 @@ function GlobeImpl({ q, ex, offset, dragging }: Props) {
     // Land: three depth buckets so the globe reads as round.
     const buckets: { x: number; y: number; r: number }[][] = [[], [], []];
     for (const d of dots) {
-      const p = view.project(d);
-      if (p.z <= 0.02) continue;
-      const r = 1.3 + 1.9 * Math.sqrt(p.z);
-      buckets[p.z > 0.66 ? 2 : p.z > 0.33 ? 1 : 0].push({ x: p.x, y: p.y, r });
-    }
-
-    // Every real flight from Flighty, shown once the globe is explorable.
-    let flightPath = "";
-    const airportDots: { x: number; y: number; r: number }[] = [];
-    if (ex > 0) {
-      flightPath =
-        view.path({
-          type: "MultiLineString",
-          coordinates: routes.map(([a, b]) => legLine(airports[a], airports[b], 1, 24)),
-        }) ?? "";
-      for (const code in airports) {
-        const p = view.project(airports[code]);
-        if (p.z > 0.05) airportDots.push({ x: p.x, y: p.y, r: 3 });
-      }
+      const pt = view.project(d);
+      if (pt.z <= 0.02) continue;
+      const r = 0.9 + 1.3 * Math.sqrt(pt.z); // dot size: smaller at the edges for depth
+      buckets[pt.z > 0.66 ? 2 : pt.z > 0.33 ? 1 : 0].push({ x: pt.x, y: pt.y, r });
     }
 
     const legs = storyLegs.flatMap((leg) => {
@@ -66,99 +67,149 @@ function GlobeImpl({ q, ex, offset, dragging }: Props) {
       return [{ d: view.path({ type: "LineString", coordinates: pts }) ?? "", color: palette[leg.color].fill, head, showHead: f < 1 && head.z > 0 }];
     });
 
-    const pins: { key: string; x: number; y: number; r: number; color: string; ring: number; ringR: number; label: string; labelO: number; o: number }[] = [];
-    if (job > 0) {
-      for (const j of jobPins) {
-        const p = view.project(j.at);
-        if (p.z <= 0.05) continue;
-        pins.push({ key: j.name, x: p.x, y: p.y, r: 5, color: palette.open.fill, ring: job * 0.5, ringR: 12, label: j.name, labelO: ex * clamp01((p.z - 0.3) / 0.3), o: job });
+    // Purple world-tour hops: finished hops are drawn in full, the current one grows.
+    const tourLegs: typeof legs = [];
+    if (tp > 0) {
+      for (let k = 0; k <= hop; k++) {
+        const f = k < hop || tp >= 1 ? 1 : travel;
+        if (f <= 0) continue;
+        const pts = legLine(worldTour[k].at, worldTour[k + 1].at, f);
+        const h = view.project(pts[pts.length - 1]);
+        tourLegs.push({ d: view.path({ type: "LineString", coordinates: pts }) ?? "", color: palette.world.fill, head: h, showHead: f < 1 && h.z > 0 });
       }
     }
+    // Travel stops: a small purple dot appears at each stop as the trip reaches it and stays afterwards.
+    // Home places (Sydney, Nashville) already have their own pins, so they're skipped here.
+    const homeNames = new Set(chapters.flatMap((ch) => (ch.place ? [ch.place.name] : [])));
+    const tourStops: { name: string; x: number; y: number }[] = [];
+    if (tp > 0) {
+      const seen = new Set<string>();
+      worldTour.forEach((st, k) => {
+        if (k === 0 || homeNames.has(st.name) || seen.has(st.name)) return;
+        const arrived = tp >= 1 || hopPos >= k - 1 + 0.75;
+        if (!arrived) return;
+        seen.add(st.name);
+        const pt = view.project(st.at);
+        if (pt.z > 0.05) tourStops.push({ name: st.name, x: pt.x, y: pt.y });
+      });
+    }
+
+    type Pin = { key: string; x: number; y: number; r: number; color: string; ring: number; ringR: number; label: string; labelO: number; o: number; delay?: number; lx?: number; ly?: number; anchor?: "start" | "end" };
+    const pins: Pin[] = [];
+    // Job-search cities: no labels, they pop in one by one and twinkle at their own pace.
+    if (job > 0) {
+      jobPins.forEach((j, i) => {
+        const p = view.project(j.at);
+        if (p.z <= 0.05) return;
+        pins.push({ key: j.name, x: p.x, y: p.y, r: 5, color: palette.open.fill, ring: 0.45, ringR: 12, label: "", labelO: 0, o: job, delay: i });
+      });
+    }
+    const pinButtons: { key: string; name: string; x: number; y: number }[] = tourStops.map((t) => ({ key: `tour:${t.name}`, name: t.name, x: t.x, y: t.y }));
     chapters.forEach((ch, i) => {
       if (!ch.place) return;
       const p = view.project(ch.place.at);
       if (p.z <= 0.05) return;
       const reached = clamp01((q - i + 0.6) / 0.4);
       if (reached <= 0) return;
+      if (ch.photo && reached > 0.5 && p.z > 0.25) pinButtons.push({ key: `ch:${i}`, name: ch.place.name, x: p.x, y: p.y });
+      // Boston and New York are the top job targets: same size and color as the other home pins,
+      // with a soft ring once "Open to work" starts.
       const big = ch.place.name === "Boston" || ch.place.name === "New York" ? job : 0;
       const act = near(i);
       pins.push({
         key: ch.place.name,
         x: p.x,
         y: p.y,
-        r: 5 + 3 * act + 6 * big,
-        color: big > 0.5 ? palette.open.fill : palette[ch.color].fill,
-        ring: Math.max(act, big),
-        ringR: 16 + 14 * big,
+        r: 5 + 3 * act,
+        color: palette[ch.color].fill,
+        ring: Math.max(act, big * 0.7),
+        ringR: 16,
         label: ch.place.name,
         labelO: Math.max(act, big, ex),
         o: reached,
       });
     });
 
-    // Keep labels from piling on top of each other: home places win, then job cities.
+    // Place labels so they never pile up: try right, below, left, then above each pin;
+    // only hide a label if every spot is taken. The current chapter's place goes first.
     const kept: { x0: number; x1: number; y0: number; y1: number }[] = [];
     const order = [...pins].sort((a, b) => b.r - a.r);
     for (const p of order) {
       if (p.labelO <= 0.01) continue;
-      const x0 = p.x + p.r + 10;
-      const box = { x0, x1: x0 + p.label.length * 10.4, y0: p.y - 12, y1: p.y + 10 };
-      const hit = kept.some((k) => box.x0 < k.x1 && box.x1 > k.x0 && box.y0 < k.y1 && box.y1 > k.y0);
-      if (hit) p.labelO = 0;
-      else kept.push(box);
+      const w = p.label.length * 10.4;
+      const gap = p.r + 10;
+      const spots: { lx: number; ly: number; anchor: "start" | "end"; x0: number }[] = [
+        { lx: p.x + gap, ly: p.y + 6, anchor: "start", x0: p.x + gap }, // right
+        { lx: p.x + gap - 4, ly: p.y + 26, anchor: "start", x0: p.x + gap - 4 }, // below-right
+        { lx: p.x - gap, ly: p.y + 6, anchor: "end", x0: p.x - gap - w }, // left
+        { lx: p.x + gap - 4, ly: p.y - 14, anchor: "start", x0: p.x + gap - 4 }, // above-right
+      ];
+      const fit = spots.find((sp) => {
+        const box = { x0: sp.x0, x1: sp.x0 + w, y0: sp.ly - 18, y1: sp.ly + 4 };
+        return !kept.some((k) => box.x0 < k.x1 && box.x1 > k.x0 && box.y0 < k.y1 && box.y1 > k.y0);
+      });
+      if (!fit) {
+        p.labelO = 0;
+        continue;
+      }
+      p.lx = fit.lx;
+      p.ly = fit.ly;
+      p.anchor = fit.anchor;
+      kept.push({ x0: fit.x0, x1: fit.x0 + w, y0: fit.ly - 18, y1: fit.ly + 4 });
     }
 
-    const dreams = ex > 0
-      ? wishlist.flatMap((w) => {
-          const p = view.project(w.at);
-          return p.z > 0.05 ? [{ key: w.name, x: p.x, y: p.y, label: `${w.name} ?`, o: ex * clamp01((p.z - 0.05) / 0.25) }] : [];
-        })
-      : [];
-
-    // Polaroids: one per chapter while you're on it, plus the nearest home in explore mode.
-    const photos: { key: string; x: number; y: number; rot: number; o: number; caption: string; sub: string; src?: string; tape: string; capInk: string }[] = [];
+    // Polaroids: one per chapter while you scroll through it. At "Open to work" they only appear when a pin is clicked.
+    const photos: { key: string; x: number; y: number; rot: number; scale?: number; o: number; caption: string; sub: string; src?: string; tape: string; capInk: string }[] = [];
     const place = (at: LonLat | undefined) => {
-      if (!at) return { x: 150, y: 170 };
+      if (!at) return { x: 110, y: 560 }; // no pin (the world tour): lower left, out of the route's way
       const p = view.project(at);
       if (p.z <= 0) return null;
       return { x: Math.max(60, Math.min(560, p.x - 300)), y: Math.max(40, Math.min(560, p.y - 330)) };
     };
-    chapters.forEach((ch, i) => {
+    // A pin was clicked: show that place's photo next to it.
+    const pickedCh = picked?.startsWith("ch:") ? chapters[Number(picked.slice(3))] : null;
+    const pickedStop = picked?.startsWith("tour:") ? worldTour.find((st) => st.name === picked.slice(5)) : null;
+    if (pickedCh?.photo && pickedCh.place) {
+      const pos = place(pickedCh.place.at);
+      if (pos) photos.push({ key: `picked-${pickedCh.num}`, x: pos.x, y: pos.y, rot: pickedCh.photo.rotate, scale: 1, o: 1, caption: pickedCh.photo.caption, sub: pickedCh.photo.sub, src: pickedCh.photo.src, tape: palette[pickedCh.color].fill, capInk: palette[pickedCh.color].ink });
+    }
+    if (pickedStop) {
+      const pos = place(pickedStop.at);
+      if (pos) photos.push({ key: `picked-${pickedStop.name}`, x: pos.x, y: pos.y, rot: pickedStop.photo?.rotate ?? 3, scale: 1, o: 1, caption: pickedStop.photo?.caption ?? `[Photo · ${pickedStop.name}]`, sub: pickedStop.photo?.sub ?? "Travels", src: pickedStop.photo?.src, tape: palette.world.fill, capInk: palette.world.ink });
+    }
+    const anyPicked = Boolean(pickedCh || pickedStop);
+    if (!anyPicked) chapters.forEach((ch, i) => {
       if (!ch.photo) return;
-      const o = clamp01(1 - Math.abs(q - i) * 2.2);
+      // Timed on raw scroll: the old photo lifts away as the globe starts turning,
+      // the new one is set down once the globe has nearly arrived.
+      const t = p - i;
+      const enter = clamp01((t + 0.4) / 0.3);
+      const leave = clamp01((t - 0.3) / 0.2);
+      const o = enter * (1 - leave);
       if (o <= 0.01) return;
       const pos = place(ch.photo.at ?? ch.place?.at);
       if (!pos) return;
-      photos.push({ key: ch.num, x: pos.x, y: pos.y + (1 - o) * 24, rot: ch.photo.rotate, o, caption: ch.photo.caption, sub: ch.photo.sub, src: ch.photo.src, tape: palette[ch.color].fill, capInk: palette[ch.color].ink });
+      const e = 1 - Math.pow(1 - enter, 3); // ease-out: settles gently
+      const dy = calm ? 0 : -36 * (1 - e) - 28 * leave;
+      const tilt = calm ? 0 : 6 * (1 - e) - 3 * leave;
+      const scale = calm ? 1 : 1.05 - 0.05 * e;
+      photos.push({ key: ch.num, x: pos.x, y: pos.y + dy, rot: ch.photo.rotate + tilt, scale, o, caption: ch.photo.caption, sub: ch.photo.sub, src: ch.photo.src, tape: palette[ch.color].fill, capInk: palette[ch.color].ink });
     });
-    if (ex >= 1 && !dragging) {
-      let best: { i: number; z: number } | null = null;
-      chapters.forEach((ch, i) => {
-        if (!ch.place || !ch.photo) return;
-        const z = view.project(ch.place.at).z;
-        if (!best || z > best.z) best = { i, z };
-      });
-      const b = best as { i: number; z: number } | null;
-      if (b && b.z > 0.8) {
-        const ch = chapters[b.i];
-        const pos = place(ch.place!.at);
-        if (pos && ch.photo) photos.push({ key: `explore-${ch.num}`, x: pos.x, y: pos.y, rot: ch.photo.rotate, o: clamp01((b.z - 0.8) / 0.1), caption: ch.photo.caption, sub: ch.photo.sub, src: ch.photo.src, tape: palette[ch.color].fill, capInk: palette[ch.color].ink });
-      }
-    }
-
     return {
       graticule: view.path(graticule) ?? "",
       land: buckets.map((b) => circlesPath(b)),
-      flightPath,
-      airportPath: circlesPath(airportDots),
-      legs,
+      legs: [...legs, ...tourLegs],
+      tourStops,
+      // The colored story routes stay visible all the way through "Open to work".
+      legsO: 1,
       pins,
-      dreams,
+      pinButtons,
       photos,
     };
-  }, [q, ex, offset, dragging]);
+  }, [p, calm, q, ex, offset, dragging, tp, picked]);
 
   return (
+    <>
     <svg viewBox="0 0 1000 1000" width="100%" height="100%" className={s.globeSvg} aria-hidden="true">
       <defs>
         <pattern id={hatchId} width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
@@ -171,43 +222,45 @@ function GlobeImpl({ q, ex, offset, dragging }: Props) {
       <path d={g.land[1]} fill={ink} fillOpacity="0.5" />
       <path d={g.land[2]} fill={ink} fillOpacity="0.7" />
 
-      {ex > 0 && (
-        <g style={{ opacity: ex }}>
-          <path d={g.flightPath} fill="none" stroke={ink} strokeOpacity="0.32" strokeWidth="1.3" strokeLinecap="round" />
-          <path d={g.airportPath} fill={ink} fillOpacity="0.55" />
+      {g.legsO > 0.01 && (
+        <g style={{ opacity: g.legsO }}>
+          {g.legs.map((l, i) => (
+            <g key={i}>
+              <path d={l.d} fill="none" stroke={l.color} strokeWidth="3" strokeDasharray="8 7" strokeLinecap="round" />
+              {l.showHead && <circle cx={l.head.x} cy={l.head.y} r="6" fill={l.color} />}
+            </g>
+          ))}
         </g>
       )}
 
-      {g.legs.map((l, i) => (
-        <g key={i}>
-          <path d={l.d} fill="none" stroke={l.color} strokeWidth="3" strokeDasharray="8 7" strokeLinecap="round" />
-          {l.showHead && <circle cx={l.head.x} cy={l.head.y} r="6" fill={l.color} />}
-        </g>
+      {g.tourStops.map((t) => (
+        <circle key={t.name} cx={t.x} cy={t.y} r="5" fill={palette.world.fill} stroke={paper} strokeWidth="2" />
       ))}
 
       {g.pins.map((p) => (
         <g key={p.key} style={{ opacity: p.o }}>
-          {p.ring > 0.01 && <circle className={s.pulse} cx={p.x} cy={p.y} r={p.ringR} fill="none" stroke={p.color} strokeWidth="2" style={{ opacity: p.ring }} />}
-          <circle cx={p.x} cy={p.y} r={p.r} fill={p.color} stroke={paper} strokeWidth="2" />
+          {p.delay !== undefined ? (
+            // Job pin: pops in on its own beat, then twinkles at an uneven rhythm.
+            <g className={s.pop} style={{ animationDelay: `${p.delay * 0.22}s` }}>
+              <circle className={s.pulse} cx={p.x} cy={p.y} r={p.ringR} fill="none" stroke={p.color} strokeWidth="2" style={{ opacity: p.ring, animationDelay: `${(p.delay * 0.83) % 2.6}s`, animationDuration: `${2.6 + (p.delay % 3) * 0.9}s` }} />
+              <circle className={s.twinkle} cx={p.x} cy={p.y} r={p.r} fill={p.color} stroke={paper} strokeWidth="2" style={{ animationDelay: `${(p.delay * 1.37) % 4}s`, animationDuration: `${3.4 + (p.delay % 4) * 0.8}s` }} />
+            </g>
+          ) : (
+            <>
+              {p.ring > 0.01 && <circle className={s.pulse} cx={p.x} cy={p.y} r={p.ringR} fill="none" stroke={p.color} strokeWidth="2" style={{ opacity: p.ring }} />}
+              <circle cx={p.x} cy={p.y} r={p.r} fill={p.color} stroke={paper} strokeWidth="2" />
+            </>
+          )}
           {p.labelO > 0.01 && (
-            <text x={p.x + p.r + 12} y={p.y + 6} className={s.pinLabel} style={{ opacity: p.labelO }}>
+            <text x={p.lx ?? p.x + p.r + 12} y={p.ly ?? p.y + 6} textAnchor={p.anchor ?? "start"} className={s.pinLabel} style={{ opacity: p.labelO }}>
               {p.label}
             </text>
           )}
         </g>
       ))}
 
-      {g.dreams.map((d) => (
-        <g key={d.key} style={{ opacity: d.o }}>
-          <circle cx={d.x} cy={d.y} r="8" fill={paper} stroke={ink} strokeWidth="2" strokeDasharray="3 3" />
-          <text x={d.x + 14} y={d.y + 5} className={`${s.pinLabel} ${s.dreamLabel}`}>
-            {d.label}
-          </text>
-        </g>
-      ))}
-
       {g.photos.map((ph) => (
-        <g key={ph.key} transform={`translate(${ph.x.toFixed(1)} ${ph.y.toFixed(1)}) rotate(${ph.rot})`} style={{ opacity: ph.o }}>
+        <g key={ph.key} transform={`translate(${(ph.x + 115).toFixed(1)} ${(ph.y + 134).toFixed(1)}) rotate(${ph.rot.toFixed(2)}) scale(${(ph.scale ?? 1).toFixed(3)}) translate(-115 -134)`} style={{ opacity: ph.o }}>
           <rect x="6" y="8" width="230" height="268" fill={ink} fillOpacity="0.07" />
           <rect x="0" y="0" width="230" height="268" fill="#FFFDF8" stroke={ink} strokeOpacity="0.18" />
           {ph.src ? (
@@ -228,6 +281,19 @@ function GlobeImpl({ q, ex, offset, dragging }: Props) {
         </g>
       ))}
     </svg>
+      {/* Real buttons over the home pins: click (or tap, or Enter) to open that place's photo. */}
+      {g.pinButtons.map((b) => (
+        <button
+          key={b.key}
+          type="button"
+          className={s.pinBtn}
+          style={{ left: `${b.x / 10}%`, top: `${b.y / 10}%` }}
+          aria-label={`Show my ${b.name} photo`}
+          aria-pressed={picked === b.key}
+          onClick={() => onPick(b.key)}
+        />
+      ))}
+    </>
   );
 }
 

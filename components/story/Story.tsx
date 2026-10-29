@@ -5,6 +5,7 @@ import { chapters, site, type LonLat } from "@/data/site";
 import { palette } from "@/lib/colors";
 import { newTab } from "@/lib/links";
 import { clamp01, easeInOutCubic, smooth } from "@/lib/globe";
+import { WORLD_TOUR_MS } from "@/data/story-routes";
 import { useA11y } from "../A11yProvider";
 import { Globe } from "./Globe";
 import s from "./Story.module.css";
@@ -13,6 +14,7 @@ const LAST = chapters.length - 1; // 5
 const EXPLORE_AT = LAST - 0.2;
 const GLIDE_MS = 2600; // one chapter of auto-tour travel
 const DWELL_MS = 4200; // time to read each chapter
+const WORLD = 3; // "The world" chapter, which plays the animated trip
 
 export function Story() {
   const { calm } = useA11y();
@@ -21,6 +23,9 @@ export function Story() {
   const [offset, setOffset] = useState<LonLat>([0, 0]);
   const [dragging, setDragging] = useState(false);
   const [touring, setTouring] = useState(false);
+  const [tp, setTp] = useState(0); // world-tour progress, 0 … 1
+  const [picked, setPicked] = useState<string | null>(null); // photo opened by clicking a pin
+  const onPick = useCallback((key: string) => setPicked((cur) => (cur === key ? null : key)), []);
 
   const live = useRef({ calm, dragging, touring, p, lastTouch: 0, offset });
   live.current = { ...live.current, calm, dragging, touring, p, offset };
@@ -95,7 +100,7 @@ export function Story() {
       if (!live.current.touring) return;
       if (i > LAST) return stopTour();
       glideTo(sectionTop() + i * window.innerHeight, live.current.calm ? 0 : GLIDE_MS, () => {
-        tour.current.timer = setTimeout(() => step(i + 1), i === LAST ? 1500 : DWELL_MS);
+        tour.current.timer = setTimeout(() => step(i + 1), i === LAST ? 1500 : i === WORLD ? WORLD_TOUR_MS + 1200 : DWELL_MS);
       });
     };
     step(Math.min(LAST, Math.round(live.current.p) + 1));
@@ -165,6 +170,32 @@ export function Story() {
     return () => cancelAnimationFrame(raf);
   }, []);
 
+  // World tour: plays while you're on chapter 4, resets if you scroll back before it,
+  // and is shown complete once you've moved past it.
+  useEffect(() => {
+    let raf = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      const dt = now - last;
+      last = now;
+      const l = live.current;
+      setTp((cur) => {
+        if (l.p < WORLD - 0.4) return cur === 0 ? cur : 0;
+        if (l.p > WORLD + 0.45 || l.calm) return cur === 1 ? cur : 1;
+        if (l.p < WORLD - 0.15 || cur >= 1) return cur;
+        // Leaving early? Fast-forward so the globe doesn't jump as it turns to New York.
+        const speed = l.p > WORLD + 0.2 ? 500 : WORLD_TOUR_MS;
+        return Math.min(1, cur + dt / speed);
+      });
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  // Moving to another chapter closes a photo that was opened by clicking a pin.
+  useEffect(() => setPicked(null), [active]);
+
   const current = chapters[Math.max(0, Math.min(LAST, active))];
   const hintVisible = touring || p < 0.3;
 
@@ -172,7 +203,7 @@ export function Story() {
     <section id="itinerary" ref={sectionRef} className={s.section} aria-label="My story so far">
       <div className={s.stage}>
         <div className={s.globeWrap}>
-          <Globe q={q} ex={ex} offset={offset} dragging={dragging} />
+          <Globe p={p} calm={calm} q={q} ex={ex} offset={offset} dragging={dragging} tp={tp} picked={picked} onPick={onPick} />
           <div
             className={s.hit}
             style={{ pointerEvents: ex >= 1 ? "auto" : "none", cursor: dragging ? "grabbing" : "grab" }}
