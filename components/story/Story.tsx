@@ -172,7 +172,7 @@ export function Story() {
     <section id="itinerary" ref={sectionRef} className={s.section} aria-label="My story so far">
       <div className={s.stage}>
         <div className={s.globeWrap}>
-          <Globe q={q} ex={ex} offset={offset} dragging={dragging} />
+          <Globe p={p} calm={calm} q={q} ex={ex} offset={offset} dragging={dragging} />
           <div
             className={s.hit}
             style={{ pointerEvents: ex >= 1 ? "auto" : "none", cursor: dragging ? "grabbing" : "grab" }}

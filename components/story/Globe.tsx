@@ -8,6 +8,10 @@ import { circlesPath, clamp01, graticule, legLine, lerpView, makeView } from "@/
 import s from "./Story.module.css";
 
 type Props = {
+  /** Raw scroll progress (linear), used to time the polaroids. */
+  p: number;
+  /** Visitor asked for less motion: polaroids only fade. */
+  calm: boolean;
   /** Eased story progress, 0 (Boston) … 5 (Open to work). */
   q: number;
   /** Explore-mode amount, 0 … 1. */
@@ -19,7 +23,7 @@ type Props = {
 
 const dots = landDots as unknown as LonLat[];
 
-function GlobeImpl({ q, ex, offset, dragging }: Props) {
+function GlobeImpl({ p, calm, q, ex, offset, dragging }: Props) {
   const hatchId = useId().replace(/:/g, "");
 
   const g = useMemo(() => {
@@ -33,10 +37,10 @@ function GlobeImpl({ q, ex, offset, dragging }: Props) {
     // Land: three depth buckets so the globe reads as round.
     const buckets: { x: number; y: number; r: number }[][] = [[], [], []];
     for (const d of dots) {
-      const p = view.project(d);
-      if (p.z <= 0.02) continue;
-      const r = 1.3 + 1.9 * Math.sqrt(p.z);
-      buckets[p.z > 0.66 ? 2 : p.z > 0.33 ? 1 : 0].push({ x: p.x, y: p.y, r });
+      const pt = view.project(d);
+      if (pt.z <= 0.02) continue;
+      const r = 0.9 + 1.3 * Math.sqrt(pt.z); // dot size: smaller at the edges for depth
+      buckets[pt.z > 0.66 ? 2 : pt.z > 0.33 ? 1 : 0].push({ x: pt.x, y: pt.y, r });
     }
 
     const legs = storyLegs.flatMap((leg) => {
@@ -92,7 +96,7 @@ function GlobeImpl({ q, ex, offset, dragging }: Props) {
     }
 
     // Polaroids: one per chapter while you're on it, plus the nearest home in explore mode.
-    const photos: { key: string; x: number; y: number; rot: number; o: number; caption: string; sub: string; src?: string; tape: string; capInk: string }[] = [];
+    const photos: { key: string; x: number; y: number; rot: number; scale?: number; o: number; caption: string; sub: string; src?: string; tape: string; capInk: string }[] = [];
     const place = (at: LonLat | undefined) => {
       if (!at) return { x: 150, y: 170 };
       const p = view.project(at);
@@ -101,11 +105,20 @@ function GlobeImpl({ q, ex, offset, dragging }: Props) {
     };
     chapters.forEach((ch, i) => {
       if (!ch.photo) return;
-      const o = clamp01(1 - Math.abs(q - i) * 2.2);
+      // Timed on raw scroll: the old photo lifts away as the globe starts turning,
+      // the new one is set down once the globe has nearly arrived.
+      const t = p - i;
+      const enter = clamp01((t + 0.4) / 0.3);
+      const leave = clamp01((t - 0.3) / 0.2);
+      const o = enter * (1 - leave);
       if (o <= 0.01) return;
       const pos = place(ch.photo.at ?? ch.place?.at);
       if (!pos) return;
-      photos.push({ key: ch.num, x: pos.x, y: pos.y + (1 - o) * 24, rot: ch.photo.rotate, o, caption: ch.photo.caption, sub: ch.photo.sub, src: ch.photo.src, tape: palette[ch.color].fill, capInk: palette[ch.color].ink });
+      const e = 1 - Math.pow(1 - enter, 3); // ease-out: settles gently
+      const dy = calm ? 0 : -36 * (1 - e) - 28 * leave;
+      const tilt = calm ? 0 : 6 * (1 - e) - 3 * leave;
+      const scale = calm ? 1 : 1.05 - 0.05 * e;
+      photos.push({ key: ch.num, x: pos.x, y: pos.y + dy, rot: ch.photo.rotate + tilt, scale, o, caption: ch.photo.caption, sub: ch.photo.sub, src: ch.photo.src, tape: palette[ch.color].fill, capInk: palette[ch.color].ink });
     });
     if (ex >= 1 && !dragging) {
       let best: { i: number; z: number } | null = null;
@@ -131,7 +144,7 @@ function GlobeImpl({ q, ex, offset, dragging }: Props) {
       pins,
       photos,
     };
-  }, [q, ex, offset, dragging]);
+  }, [p, calm, q, ex, offset, dragging]);
 
   return (
     <svg viewBox="0 0 1000 1000" width="100%" height="100%" className={s.globeSvg} aria-hidden="true">
@@ -180,7 +193,7 @@ function GlobeImpl({ q, ex, offset, dragging }: Props) {
       ))}
 
       {g.photos.map((ph) => (
-        <g key={ph.key} transform={`translate(${ph.x.toFixed(1)} ${ph.y.toFixed(1)}) rotate(${ph.rot})`} style={{ opacity: ph.o }}>
+        <g key={ph.key} transform={`translate(${(ph.x + 115).toFixed(1)} ${(ph.y + 134).toFixed(1)}) rotate(${ph.rot.toFixed(2)}) scale(${(ph.scale ?? 1).toFixed(3)}) translate(-115 -134)`} style={{ opacity: ph.o }}>
           <rect x="6" y="8" width="230" height="268" fill={ink} fillOpacity="0.07" />
           <rect x="0" y="0" width="230" height="268" fill="#FFFDF8" stroke={ink} strokeOpacity="0.18" />
           {ph.src ? (
