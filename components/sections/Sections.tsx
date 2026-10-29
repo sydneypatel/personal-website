@@ -2,6 +2,7 @@ import flights from "@/data/flights.json";
 import { projects, route } from "@/data/projects";
 import { site } from "@/data/site";
 import { palette } from "@/lib/colors";
+import { newTab } from "@/lib/links";
 import s from "./sections.module.css";
 
 export function Postcards() {
@@ -24,7 +25,7 @@ export function Postcards() {
               <p className={s.cardBody}>{p.blurb}</p>
               <div className={s.cardLinks}>
                 {p.links.map((l) => (
-                  <a key={l.label} href={l.href}>{l.label}</a>
+                  <a key={l.label} href={l.href} {...newTab(l.href)}>{l.label}</a>
                 ))}
               </div>
             </article>
@@ -53,7 +54,7 @@ export function FlightLog() {
             <h2 className={s.h2}>My résumé, by route</h2>
             <p className={s.lede} style={{ margin: 0 }}>Every stop, every role, in the order I flew it.</p>
           </div>
-          <a href={site.links.resume} className="pill pill--ink">Download résumé (PDF) ↓</a>
+          <a href={site.links.resume} className="pill pill--ink" {...newTab(site.links.resume)}>Download résumé (PDF) ↓</a>
         </div>
 
         <div className={s.statsWrap}>
@@ -114,9 +115,9 @@ export function Contact() {
         </p>
         <div className={s.contactLinks}>
           <a href={site.links.email}>Email ↗</a>
-          <a href={site.links.github}>GitHub ↗</a>
-          <a href={site.links.linkedin}>LinkedIn ↗</a>
-          <a href={site.links.resume}>Résumé ↓</a>
+          <a href={site.links.github} {...newTab(site.links.github)}>GitHub ↗</a>
+          <a href={site.links.linkedin} {...newTab(site.links.linkedin)}>LinkedIn ↗</a>
+          <a href={site.links.resume} {...newTab(site.links.resume)}>Résumé ↓</a>
         </div>
         <footer className={s.footer}>
           <span>© {new Date().getFullYear()} {site.name}</span>

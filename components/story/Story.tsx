@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { chapters, site, type LonLat } from "@/data/site";
 import { palette } from "@/lib/colors";
+import { newTab } from "@/lib/links";
 import { clamp01, easeInOutCubic, smooth } from "@/lib/globe";
 import { useA11y } from "../A11yProvider";
 import { Globe } from "./Globe";
@@ -233,7 +234,7 @@ export function Story() {
                   {i === LAST && (
                     <div className={s.ctas}>
                       <a href="#flightlog" className="pill pill--berry" tabIndex={o > 0.5 ? 0 : -1}>See the flight log ↓</a>
-                      <a href={site.links.resume} className="pill" tabIndex={o > 0.5 ? 0 : -1}>Résumé (PDF)</a>
+                      <a href={site.links.resume} {...newTab(site.links.resume)} className="pill" tabIndex={o > 0.5 ? 0 : -1}>Résumé (PDF)</a>
                     </div>
                   )}
                 </div>

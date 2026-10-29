@@ -9,10 +9,10 @@ export const site = {
   shortName: "S. Patel",
   tagline: "Software engineer",
   links: {
-    github: "#", // TODO: https://github.com/<you>
-    linkedin: "#", // TODO: https://www.linkedin.com/in/<you>
-    email: "#", // TODO: mailto:you@example.com
-    resume: "#", // TODO: drop resume.pdf in /public and use "/resume.pdf"
+    github: "https://github.com/sydneypatel", 
+    linkedin: "https://www.linkedin.com/in/sydney-patel", 
+    email: "mailto:sydney.j.patel@gmail.com",
+    resume: "/Sydney_Patel_Resume.pdf", 
   },
   currently: [
     { label: "School", color: "nyc", text: "Building Willow, a check-in app for older adults" },

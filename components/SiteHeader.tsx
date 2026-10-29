@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { site } from "@/data/site";
 import { palette } from "@/lib/colors";
+import { newTab } from "@/lib/links";
 import { useA11y } from "./A11yProvider";
 import s from "./SiteHeader.module.css";
 
@@ -63,7 +64,7 @@ export function SiteHeader({ page }: Props) {
           <Link className={s.link} href="/wishlist" aria-current={page === "wishlist" ? "page" : undefined}>
             Wish list
           </Link>
-          <a className={s.link} href={site.links.github}>GitHub ↗</a>
+          <a className={s.link} href={site.links.github} {...newTab(site.links.github)}>GitHub ↗</a>
 
           <div className={s.a11yWrap} ref={wrapRef}>
             <button
@@ -88,7 +89,7 @@ export function SiteHeader({ page }: Props) {
             )}
           </div>
 
-          <a className="pill pill--berry" href={site.links.resume}>Résumé ↓</a>
+          <a className="pill pill--berry" href={site.links.resume} {...newTab(site.links.resume)}>Résumé ↓</a>
         </nav>
       </div>
 
