@@ -22,8 +22,9 @@ export const projects: Project[] = [
       "A social photo app where group albums stay hidden until a scheduled reveal. Built solo end-to-end, from the iOS interface to the backend APIs and photo infrastructure, through App Store launch.",
     stack: "SwiftUI · Node.js · PostgreSQL · AWS · Firebase",
     links: [
-      { label: "App Store ↗", href: "#" }, // TODO: App Store link
+      { label: "App Store ↗", href: "https://apps.apple.com/us/app/last-night/id6761505417" },
       { label: "Site ↗", href: "https://last-night-app.com" },
+      { label: "GitHub ↗", href: "https://github.com/sydneypatel/last-night" },
     ],
   },
   {
@@ -34,7 +35,10 @@ export const projects: Project[] = [
     blurb:
       "An AI-powered tool that fact-checks investment claims against credible financial sources, to make financial information easier to evaluate. Built with a Cornell Tech team.",
     stack: "AI · LLMs · Financial data · Product development",
-    links: [], // TODO: add a link if there's a demo or repo
+    links: [
+      { label: "Live ↗", href: "https://getverifi.vercel.app" },
+      { label: "GitHub ↗", href: "https://github.com/sydneypatel/verifi" },
+    ],
   },
   {
     no: "03",
@@ -44,7 +48,7 @@ export const projects: Project[] = [
     blurb:
       "A check-in app exploring how changes in daily activities could signal when older adults may need more support. Team project using longitudinal aging data to find predictive signals.",
     stack: "Machine learning · Health tech · Data analysis",
-    links: [], // TODO: add GitHub link if public
+    links: [],
   },
   {
     no: "04",
@@ -53,8 +57,8 @@ export const projects: Project[] = [
     stamp: "nashville",
     blurb: "A meal-prep and recipe planner that grew out of an HCI class project.",
     links: [
-      { label: "Live ↗", href: "#" }, // TODO
-      { label: "GitHub ↗", href: "#" }, // TODO
+      { label: "Live ↗", href: "https://get-my-kitchen.vercel.app" },
+      { label: "GitHub ↗", href: "https://github.com/sydneypatel/my-kitchen" },
     ],
   },
   // Foyer: hidden while it's being reworked. Uncomment to bring it back.
@@ -64,7 +68,10 @@ export const projects: Project[] = [
   //   tag: "SaaS · AI",
   //   stamp: "nyc",
   //   blurb: "AI email triage for hotel management companies.",
-  //   links: [{ label: "foyer-ai.com ↗", href: "https://foyer-ai.com" }],
+  //   links: [
+  //     { label: "foyer-ai.com ↗", href: "https://foyer-ai.com" },
+  //     { label: "GitHub ↗", href: "https://github.com/sydneypatel/hotel-ops" },
+  //   ],
   // },
 ];
 
