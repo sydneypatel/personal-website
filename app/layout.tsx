@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { A11yProvider } from "@/components/A11yProvider";
+import { themeScript } from "@/lib/theme";
 // Self-hosted fonts (no request to Google at runtime or build time).
 import "@fontsource/instrument-serif/latin-400.css";
 import "@fontsource/instrument-serif/latin-400-italic.css";
@@ -14,10 +15,9 @@ export const metadata: Metadata = {
   description:
       "Software engineer who designs for the person on the other end. Building human-centered tech, and open to work.",
   openGraph: {
-    title: "Sydney Patel — Software Engineer",
+    title: "Sydney Patel",
     description: "Software engineer building technology for people.",
     url: "/",
-    siteName: "Sydney Patel",
     type: "website",
   },
   robots: { index: false, follow: false },
@@ -29,7 +29,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" data-theme="light" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body>
         <a className="skip-link" href="#main">
           Skip to content

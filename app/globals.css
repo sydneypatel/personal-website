@@ -7,8 +7,13 @@
   --ink: #1e1d1b;
   --muted: #5f5a52;
   --muted-2: #6b655c;
-  --rule: rgba(30, 29, 27, 0.18);
-  --rule-strong: rgba(30, 29, 27, 0.45);
+  --ink-rgb: 30 29 27; /* ink as RGB, for translucent lines: rgb(var(--ink-rgb) / 0.2) */
+  --rule: rgb(var(--ink-rgb) / 0.18);
+  --rule-strong: rgb(var(--ink-rgb) / 0.45);
+  --globe-sea: #efe8da;
+  --picked: #e6f3f0;
+  --shadow: rgb(var(--ink-rgb) / 0.12);
+  color-scheme: light;
 
   --c-boston: #e4513b;
   --c-boston-ink: #b23420;
@@ -31,17 +36,49 @@
   --header-h: 72px;
 }
 
+/* Dark mode (header toggle). Chapter fills stay the same; text colors are brightened to pass AA on dark. */
+:root[data-theme="dark"] {
+  --paper: #14130f;
+  --paper-deep: #1a1915;
+  --card: #1e1c18;
+  --ink: #ede8dd;
+  --ink-rgb: 237 232 221;
+  --muted: #a9a398;
+  --muted-2: #9a9489;
+  --globe-sea: #1d1b17;
+  --picked: #16302b;
+  --shadow: rgb(0 0 0 / 0.45);
+  --c-boston-ink: #f28b74;
+  --c-nashville-ink: #f2c35e;
+  --c-australia-ink: #5fd3c1;
+  --c-world-ink: #b3a2ff;
+  --c-nyc-ink: #8faaff;
+  --c-open-ink: #f27a9b;
+  color-scheme: dark;
+}
+
 /* High-contrast mode from the Accessibility menu. */
 :root[data-contrast="high"] {
   --muted: #2e2b26;
   --muted-2: #3a362f;
-  --rule: rgba(30, 29, 27, 0.5);
-  --rule-strong: rgba(30, 29, 27, 0.8);
+  --rule: rgb(var(--ink-rgb) / 0.5);
+  --rule-strong: rgb(var(--ink-rgb) / 0.8);
   --c-boston-ink: #8f2412;
   --c-nashville-ink: #6b4500;
   --c-australia-ink: #0a5047;
   --c-world-ink: #4527b8;
   --c-nyc-ink: #18348f;
+}
+:root[data-theme="dark"][data-contrast="high"] {
+  --paper: #000000;
+  --muted: #d6d1c6;
+  --muted-2: #cbc5b9;
+  --c-boston-ink: #ffab98;
+  --c-nashville-ink: #ffd88a;
+  --c-australia-ink: #8be8da;
+  --c-world-ink: #cfc4ff;
+  --c-nyc-ink: #b3c6ff;
+  --c-open-ink: #ff9fb9;
 }
 
 *,
@@ -69,7 +106,7 @@ a {
   color: var(--ink);
 }
 a:hover {
-  color: var(--c-open);
+  color: var(--c-open-ink);
 }
 
 :focus-visible {
@@ -153,7 +190,7 @@ img {
 }
 .pill--berry {
   background: var(--c-open);
-  border-color: var(--c-open);
+  border-color: var(--c-open-ink);
   color: #fff;
 }
 .pill--berry:hover {

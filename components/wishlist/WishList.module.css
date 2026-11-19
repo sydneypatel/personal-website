@@ -7,7 +7,7 @@
   gap: 20px;
 }
 .card {
-  border: 1.5px dashed rgba(30, 29, 27, 0.55);
+  border: 1.5px dashed rgb(var(--ink-rgb) / 0.55);
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -15,7 +15,7 @@
   min-height: 210px;
 }
 .card[data-picked="true"] {
-  background: #e6f3f0;
+  background: var(--picked);
 }
 .cardTop {
   display: flex;
@@ -53,7 +53,7 @@
 .note {
   margin-top: 48px;
   background: var(--card);
-  border: 1px solid rgba(30, 29, 27, 0.3);
+  border: 1px solid rgb(var(--ink-rgb) / 0.3);
   padding: 32px;
   scroll-margin-top: calc(var(--header-h) + 16px);
 }
@@ -96,7 +96,7 @@
 }
 .input {
   min-height: 44px;
-  border: 1px solid rgba(30, 29, 27, 0.5);
+  border: 1px solid rgb(var(--ink-rgb) / 0.5);
   background: var(--photo);
   padding: 8px 12px;
   font-family: var(--font-body);

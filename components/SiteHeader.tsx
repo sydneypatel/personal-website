@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { site } from "@/data/site";
 import { palette } from "@/lib/colors";
 import { newTab } from "@/lib/links";
+import { ThemeToggle } from "./ThemeToggle";
 import { useA11y } from "./A11yProvider";
 import s from "./SiteHeader.module.css";
 
@@ -88,6 +89,8 @@ export function SiteHeader({ page }: Props) {
           <a className={s.link} href={anchor("postcards")}>Postcards</a>
           <a className={s.link} href={anchor("flightlog")}>Flight log</a>
           <a className={s.link} href={site.links.github} {...newTab(site.links.github)}>GitHub ↗</a>
+
+          <ThemeToggle />
 
           <div className={s.a11yWrap} ref={wrapRef}>
             <button

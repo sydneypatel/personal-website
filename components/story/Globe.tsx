@@ -5,7 +5,7 @@ import { geoInterpolate } from "d3-geo";
 import landDots from "@/data/land-dots.json";
 import { chapters, jobPins, type LonLat } from "@/data/site";
 import { storyLegs, worldTour } from "@/data/story-routes";
-import { palette, ink, paper } from "@/lib/colors";
+import { palette, ink, paper, photoInk } from "@/lib/colors";
 import { circlesPath, clamp01, easeInOutCubic, graticule, legLine, lerpView, makeView } from "@/lib/globe";
 import s from "./Story.module.css";
 
@@ -171,11 +171,11 @@ function GlobeImpl({ p, calm, q, ex, offset, dragging, tp, picked, onPick }: Pro
     const pickedStop = picked?.startsWith("tour:") ? worldTour.find((st) => st.name === picked.slice(5)) : null;
     if (pickedCh?.photo && pickedCh.place) {
       const pos = place(pickedCh.place.at);
-      if (pos) photos.push({ key: `picked-${pickedCh.num}`, x: pos.x, y: pos.y, rot: pickedCh.photo.rotate, scale: 1, o: 1, caption: pickedCh.photo.caption, sub: pickedCh.photo.sub, src: pickedCh.photo.src, tape: palette[pickedCh.color].fill, capInk: palette[pickedCh.color].ink });
+      if (pos) photos.push({ key: `picked-${pickedCh.num}`, x: pos.x, y: pos.y, rot: pickedCh.photo.rotate, scale: 1, o: 1, caption: pickedCh.photo.caption, sub: pickedCh.photo.sub, src: pickedCh.photo.src, tape: palette[pickedCh.color].fill, capInk: palette[pickedCh.color].paperInk });
     }
     if (pickedStop) {
       const pos = place(pickedStop.at);
-      if (pos) photos.push({ key: `picked-${pickedStop.name}`, x: pos.x, y: pos.y, rot: pickedStop.photo?.rotate ?? 3, scale: 1, o: 1, caption: pickedStop.photo?.caption ?? `[Photo · ${pickedStop.name}]`, sub: pickedStop.photo?.sub ?? "Travels", src: pickedStop.photo?.src, tape: palette.world.fill, capInk: palette.world.ink });
+      if (pos) photos.push({ key: `picked-${pickedStop.name}`, x: pos.x, y: pos.y, rot: pickedStop.photo?.rotate ?? 3, scale: 1, o: 1, caption: pickedStop.photo?.caption ?? `[Photo · ${pickedStop.name}]`, sub: pickedStop.photo?.sub ?? "Travels", src: pickedStop.photo?.src, tape: palette.world.fill, capInk: palette.world.paperInk });
     }
     const anyPicked = Boolean(pickedCh || pickedStop);
     if (!anyPicked) chapters.forEach((ch, i) => {
@@ -193,7 +193,7 @@ function GlobeImpl({ p, calm, q, ex, offset, dragging, tp, picked, onPick }: Pro
       const dy = calm ? 0 : -36 * (1 - e) - 28 * leave;
       const tilt = calm ? 0 : 6 * (1 - e) - 3 * leave;
       const scale = calm ? 1 : 1.05 - 0.05 * e;
-      photos.push({ key: ch.num, x: pos.x, y: pos.y + dy, rot: ch.photo.rotate + tilt, scale, o, caption: ch.photo.caption, sub: ch.photo.sub, src: ch.photo.src, tape: palette[ch.color].fill, capInk: palette[ch.color].ink });
+      photos.push({ key: ch.num, x: pos.x, y: pos.y + dy, rot: ch.photo.rotate + tilt, scale, o, caption: ch.photo.caption, sub: ch.photo.sub, src: ch.photo.src, tape: palette[ch.color].fill, capInk: palette[ch.color].paperInk });
     });
     return {
       graticule: view.path(graticule) ?? "",
@@ -213,14 +213,14 @@ function GlobeImpl({ p, calm, q, ex, offset, dragging, tp, picked, onPick }: Pro
     <svg viewBox="0 0 1000 1000" width="100%" height="100%" className={s.globeSvg} aria-hidden="true">
       <defs>
         <pattern id={hatchId} width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-          <line x1="0" y1="0" x2="0" y2="10" stroke={ink} strokeOpacity="0.12" strokeWidth="3" />
+          <line x1="0" y1="0" x2="0" y2="10" stroke={photoInk} strokeOpacity="0.12" strokeWidth="3" />
         </pattern>
       </defs>
-      <circle cx="500" cy="500" r="470" fill="#EFE8DA" stroke={ink} strokeOpacity="0.3" strokeWidth="1.2" />
-      <path d={g.graticule} fill="none" stroke={ink} strokeOpacity="0.14" strokeWidth="1" />
-      <path d={g.land[0]} fill={ink} fillOpacity="0.32" />
-      <path d={g.land[1]} fill={ink} fillOpacity="0.5" />
-      <path d={g.land[2]} fill={ink} fillOpacity="0.7" />
+      <circle cx="500" cy="500" r="470" strokeOpacity="0.3" strokeWidth="1.2" style={{ fill: "var(--globe-sea)", stroke: ink }} />
+      <path d={g.graticule} fill="none" strokeOpacity="0.14" strokeWidth="1" style={{ stroke: ink }} />
+      <path d={g.land[0]} fillOpacity="0.32" style={{ fill: ink }} />
+      <path d={g.land[1]} fillOpacity="0.5" style={{ fill: ink }} />
+      <path d={g.land[2]} fillOpacity="0.7" style={{ fill: ink }} />
 
       {g.legsO > 0.01 && (
         <g style={{ opacity: g.legsO }}>
@@ -234,7 +234,7 @@ function GlobeImpl({ p, calm, q, ex, offset, dragging, tp, picked, onPick }: Pro
       )}
 
       {g.tourStops.map((t) => (
-        <circle key={t.name} cx={t.x} cy={t.y} r="5" fill={palette.world.fill} stroke={paper} strokeWidth="2" />
+        <circle key={t.name} cx={t.x} cy={t.y} r="5" fill={palette.world.fill} strokeWidth="2" style={{ stroke: paper }} />
       ))}
 
       {g.pins.map((p) => (
@@ -243,12 +243,12 @@ function GlobeImpl({ p, calm, q, ex, offset, dragging, tp, picked, onPick }: Pro
             // Job pin: pops in on its own beat, then twinkles at an uneven rhythm.
             <g className={s.pop} style={{ animationDelay: `${p.delay * 0.22}s` }}>
               <circle className={s.pulse} cx={p.x} cy={p.y} r={p.ringR} fill="none" stroke={p.color} strokeWidth="2" style={{ opacity: p.ring, animationDelay: `${(p.delay * 0.83) % 2.6}s`, animationDuration: `${2.6 + (p.delay % 3) * 0.9}s` }} />
-              <circle className={s.twinkle} cx={p.x} cy={p.y} r={p.r} fill={p.color} stroke={paper} strokeWidth="2" style={{ animationDelay: `${(p.delay * 1.37) % 4}s`, animationDuration: `${3.4 + (p.delay % 4) * 0.8}s` }} />
+              <circle className={s.twinkle} cx={p.x} cy={p.y} r={p.r} fill={p.color} strokeWidth="2" style={{ stroke: paper, animationDelay: `${(p.delay * 1.37) % 4}s`, animationDuration: `${3.4 + (p.delay % 4) * 0.8}s` }} />
             </g>
           ) : (
             <>
               {p.ring > 0.01 && <circle className={s.pulse} cx={p.x} cy={p.y} r={p.ringR} fill="none" stroke={p.color} strokeWidth="2" style={{ opacity: p.ring }} />}
-              <circle cx={p.x} cy={p.y} r={p.r} fill={p.color} stroke={paper} strokeWidth="2" />
+              <circle cx={p.x} cy={p.y} r={p.r} fill={p.color} strokeWidth="2" style={{ stroke: paper }} />
             </>
           )}
           {p.labelO > 0.01 && (
@@ -261,8 +261,8 @@ function GlobeImpl({ p, calm, q, ex, offset, dragging, tp, picked, onPick }: Pro
 
       {g.photos.map((ph) => (
         <g key={ph.key} transform={`translate(${(ph.x + 115).toFixed(1)} ${(ph.y + 134).toFixed(1)}) rotate(${ph.rot.toFixed(2)}) scale(${(ph.scale ?? 1).toFixed(3)}) translate(-115 -134)`} style={{ opacity: ph.o }}>
-          <rect x="6" y="8" width="230" height="268" fill={ink} fillOpacity="0.07" />
-          <rect x="0" y="0" width="230" height="268" fill="#FFFDF8" stroke={ink} strokeOpacity="0.18" />
+          <rect x="6" y="8" width="230" height="268" fill="#000" fillOpacity="0.12" />
+          <rect x="0" y="0" width="230" height="268" fill="#FFFDF8" stroke={photoInk} strokeOpacity="0.18" />
           {ph.src ? (
             <image href={ph.src} x="12" y="12" width="206" height="196" preserveAspectRatio="xMidYMid slice" />
           ) : (

@@ -44,7 +44,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: var(--c-open);
+  color: var(--c-open-ink);
 }
 .blink {
   width: 8px;
@@ -104,7 +104,7 @@
 }
 .card {
   background: var(--card);
-  border: 1px solid rgba(30, 29, 27, 0.22);
+  border: 1px solid rgb(var(--ink-rgb) / 0.22);
   padding: 28px;
   display: flex;
   flex-direction: column;
@@ -185,7 +185,7 @@
 .statsWrap {
   margin-bottom: 64px;
   border-top: 1px solid var(--ink);
-  border-bottom: 1px solid rgba(30, 29, 27, 0.25);
+  border-bottom: 1px solid rgb(var(--ink-rgb) / 0.25);
   padding: 24px 0;
 }
 .stats {
@@ -243,7 +243,7 @@
 .pass {
   display: flex;
   background: var(--card);
-  border: 1px solid rgba(30, 29, 27, 0.3);
+  border: 1px solid rgb(var(--ink-rgb) / 0.3);
 }
 .passMain {
   flex: 1;
@@ -306,7 +306,7 @@
   min-height: 220px;
   padding: 28px;
   text-decoration: none;
-  border: 1.5px dashed rgba(30, 29, 27, 0.55);
+  border: 1.5px dashed rgb(var(--ink-rgb) / 0.55);
 }
 a.travelCard:hover {
   color: var(--ink);
@@ -330,7 +330,7 @@ a.travelCard:hover {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   padding-bottom: 72px;
-  border-bottom: 1px solid rgba(30, 29, 27, 0.25);
+  border-bottom: 1px solid rgb(var(--ink-rgb) / 0.25);
 }
 .contactLinks a {
   padding: 12px 0;

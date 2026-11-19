@@ -49,7 +49,7 @@
 }
 .pinBtn:hover,
 .pinBtn[aria-pressed="true"] {
-  box-shadow: inset 0 0 0 2px rgba(30, 29, 27, 0.35);
+  box-shadow: inset 0 0 0 2px rgb(var(--ink-rgb) / 0.35);
 }
 
 .pulse {
@@ -116,7 +116,7 @@
 .photoSub {
   font-family: var(--font-mono);
   font-size: 11px;
-  fill: var(--muted);
+  fill: #5f5a52; /* on the white polaroid in both themes */
 }
 
 .copy {
@@ -135,7 +135,7 @@
   max-width: 620px;
   padding: 8px 0;
   border-top: 1px solid var(--ink);
-  border-bottom: 1px solid rgba(30, 29, 27, 0.25);
+  border-bottom: 1px solid rgb(var(--ink-rgb) / 0.25);
   color: var(--muted);
 }
 .name {
