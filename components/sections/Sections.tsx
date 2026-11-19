@@ -14,6 +14,7 @@ export function Postcards() {
         <p className="mono-label" style={{ color: palette.boston.ink, margin: "0 0 12px" }}>Postcards</p>
         <h2 className={s.h2}>Things I&apos;ve built</h2>
         <p className={s.lede}>Souvenirs from the trip so far. Apps I&apos;ve shipped solo, and projects built with teams.</p>
+        {currently.show && (
         <div className={s.currently}>
           <span className={`mono-label ${s.currentlyLabel}`}>
             <span className={s.blink} aria-hidden="true" />
@@ -50,6 +51,7 @@ export function Postcards() {
             </div>
           </div>
         </div>
+        )}
         <div className={s.cards}>
           {projects.map((p) => (
             <article key={p.name} className={s.card}>
