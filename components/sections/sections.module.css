@@ -151,6 +151,16 @@
   line-height: 1.55;
   color: var(--muted);
 }
+.stack {
+  margin: auto 0 0;
+  padding-top: 6px;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  line-height: 1.6;
+}
+.stack + .cardLinks {
+  margin-top: 0;
+}
 .cardLinks {
   margin-top: auto;
   display: flex;
@@ -249,6 +259,12 @@
   font-size: 16px;
   color: var(--muted);
   margin-top: 4px;
+}
+.passNote {
+  margin: 10px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
 }
 .stub {
   border-left: 2px dashed var(--paper);

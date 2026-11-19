@@ -37,14 +37,16 @@ export function Postcards() {
                   ))}
                 </ul>
               </div>
-              <div>
-                <h3 className={`mono-label ${s.currentlyHead}`} style={{ color: palette.nashville.ink }}>Learning</h3>
-                <ul className={s.currentlyList}>
-                  {currently.learning.map((c) => (
-                    <li key={c}>{c}</li>
-                  ))}
-                </ul>
-              </div>
+              {currently.learning.length > 0 && (
+                <div>
+                  <h3 className={`mono-label ${s.currentlyHead}`} style={{ color: palette.nashville.ink }}>Learning</h3>
+                  <ul className={s.currentlyList}>
+                    {currently.learning.map((c) => (
+                      <li key={c}>{c}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -59,11 +61,14 @@ export function Postcards() {
               </div>
               <h3 className={s.cardTitle}>{p.name}</h3>
               <p className={s.cardBody}>{p.blurb}</p>
-              <div className={s.cardLinks}>
-                {p.links.map((l) => (
-                  <a key={l.label} href={l.href} {...newTab(l.href)}>{l.label}</a>
-                ))}
-              </div>
+              {p.stack && <p className={`mono-label ${s.stack}`}>{p.stack}</p>}
+              {p.links.length > 0 && (
+                <div className={s.cardLinks}>
+                  {p.links.map((l) => (
+                    <a key={l.label} href={l.href} {...newTab(l.href)}>{l.label}</a>
+                  ))}
+                </div>
+              )}
             </article>
           ))}
         </div>
@@ -125,6 +130,7 @@ export function FlightLog() {
                   <div className={s.passMain}>
                     <div className={s.passTitle}>{pass.title}</div>
                     <div className={s.passSub}>{pass.sub}</div>
+                    {pass.note && <p className={s.passNote}>{pass.note}</p>}
                   </div>
                   <div className={s.stub} style={{ background: palette[stop.color].fill, color: palette[stop.color].on }}>{pass.dates}</div>
                 </div>

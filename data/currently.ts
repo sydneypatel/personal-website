@@ -1,13 +1,13 @@
 /**
  * "Currently" block in the Things I've built section.
  * Column 1: school projects. Column 2: personal projects + what you're learning.
- * Add or remove items freely; each list can be any length.
+ * Add or remove items freely. An empty list hides its heading.
  */
 export const currently = {
   school: [
+    { name: "Verifi", text: "an AI tool that fact-checks investment claims against credible financial sources" },
     { name: "Willow", text: "a check-in app for older adults" },
-    { name: "HypeCheck", text: "[short description]" },
   ],
   personal: [{ name: "My Kitchen", text: "a meal-prep planner" }],
-  learning: ["[new tool or language]"],
+  learning: [] as string[], // e.g. ["Rust"]
 };

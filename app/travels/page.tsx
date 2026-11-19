@@ -29,11 +29,7 @@ export default function TravelsPage() {
             <p className={s.cardBody}>Been to one? Send me a postcard with your tips.</p>
             <span className="mono-label" style={{ marginTop: "auto" }}>See the list →</span>
           </Link>
-          <div className={s.travelCard}>
-            <span className="mono-label" style={{ color: "var(--muted)" }}>Field notes</span>
-            <h2 className={s.travelCardTitle}>Stories from the trips.</h2>
-            <p className={s.cardBody}>Posts about the places I&apos;ve been are coming soon.</p>
-          </div>
+          {/* "Field notes" card goes here once the first trip story is written. */}
         </div>
 
         <div style={{ marginTop: 72 }}>

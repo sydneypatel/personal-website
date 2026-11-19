@@ -1,5 +1,5 @@
 // Everything you'll want to edit lives in this folder.
-// Links marked TODO are placeholders until you fill them in.
+// The Currently block lives in data/currently.ts, projects and the flight log in data/projects.ts.
 
 export type ChapterColor = "boston" | "nashville" | "australia" | "world" | "nyc" | "open";
 export type LonLat = [number, number];
@@ -8,17 +8,14 @@ export const site = {
   name: "Sydney Patel",
   shortName: "S. Patel",
   tagline: "Software engineer",
+  /** One-line intro under the name on the home page. */
+  intro: "Software engineer building technology for people. Computer Science M.Eng at Cornell Tech, into full-stack, AI and health tech.",
   links: {
     github: "https://github.com/sydneypatel", 
     linkedin: "https://www.linkedin.com/in/sydney-patel", 
     email: "mailto:sydney.j.patel@gmail.com",
     resume: "/Sydney_Patel_Resume.pdf", 
   },
-  currently: [
-    { label: "School", color: "nyc", text: "Building Willow, a check-in app for older adults\nBuilding HypeCheck, a _____\n" },
-    { label: "Personal", color: "australia", text: "Cooking up My Kitchen, a meal-prep planner" },
-    { label: "Learning", color: "nashville", text: "[new tool or language]" },
-  ] as { label: string; color: ChapterColor; text: string }[],
 };
 
 export type Chapter = {
@@ -55,7 +52,7 @@ export const chapters: Chapter[] = [
     nav: "Nashville",
     kicker: "Nashville, Tennessee · 36.16° N, 86.78° W",
     headline: ["I studied Computer Science and Applied Mathematics at ", "Vanderbilt", "."],
-    body: "B.S., May 2026. TA for data structures and algorithms, and I taught coding to teens on the side.",
+    body: "B.S., May 2026, with a minor in Data Science. TA for Program Design & Data Structures.",
     view: [-62, 26],
     place: { name: "Nashville", at: [-86.78, 36.16] },
     photo: { caption: "[Photo · Vanderbilt]", sub: "Nashville, TN", rotate: 3 },

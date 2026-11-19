@@ -224,6 +224,10 @@ export function Story() {
             {site.name}
             <span style={{ color: palette[current.color].fill }} className={s.period}>.</span>
           </h1>
+          <p className={s.intro}>
+            {site.intro}{" "}
+            <a href="#postcards" className={s.introLink}>See my work ↓</a>
+          </p>
           <div className={s.underName}>
             <div className={s.bar} aria-hidden="true" style={{ width: 90 + active * 34, background: palette[current.color].fill }} />
             <button

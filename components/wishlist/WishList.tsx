@@ -3,10 +3,16 @@
 import { useState } from "react";
 import { wishlist } from "@/data/wishlist";
 import { palette } from "@/lib/colors";
+import { site } from "@/data/site";
+import { newTab } from "@/lib/links";
 import s from "./WishList.module.css";
 
-// Set NEXT_PUBLIC_FORMSPREE_ID in .env.local (free at formspree.io) to receive postcards by email.
+// The postcard form only appears once NEXT_PUBLIC_FORMSPREE_ID is set (free at formspree.io),
+// in .env.local and in Vercel's environment variables. Until then, "Been there?" opens an email.
 const FORMSPREE_ID = process.env.NEXT_PUBLIC_FORMSPREE_ID;
+const FORM_ON = Boolean(FORMSPREE_ID);
+const mailto = (place: string) =>
+  `${site.links.email}?subject=${encodeURIComponent(`Tips for ${place}`)}`;
 
 type Status = "idle" | "sending" | "sent" | "error";
 
@@ -45,14 +51,21 @@ export function WishList() {
               <span className={s.ring} style={{ borderColor: palette[w.color].ink }} aria-hidden="true" />
             </div>
             <h2 className={s.name}>{w.name}</h2>
-            <p className={s.why}>{w.why}</p>
-            <a href="#note" className={s.tell} style={{ color: palette[w.color].ink }} onClick={() => setPlace(w.name)}>
+            {w.why && <p className={s.why}>{w.why}</p>}
+            {FORM_ON ? (
+              <a href="#note" className={s.tell} style={{ color: palette[w.color].ink }} onClick={() => setPlace(w.name)}>
               Been there? Tell me →
             </a>
+            ) : (
+              <a href={mailto(w.name)} {...newTab(mailto(w.name))} className={s.tell} style={{ color: palette[w.color].ink }}>
+                Been there? Email me →
+              </a>
+            )}
           </li>
         ))}
       </ul>
 
+      {FORM_ON && (
       <div id="note" className={s.note}>
         {status === "sent" ? (
           <div className={s.sent} role="status">
@@ -100,6 +113,7 @@ export function WishList() {
           </form>
         )}
       </div>
+      )}
     </>
   );
 }
