@@ -178,8 +178,8 @@ export function SiteFooter() {
     <footer className={s.footer}>
       <span>© {new Date().getFullYear()} {site.name}</span>
       <nav aria-label="More" className={s.footerLinks}>
-        <Link href="/travels">Travels</Link>
-        <Link href="/wishlist">Wish list</Link>
+        {/* <Link href="/travels">Travels</Link>
+        <Link href="/wishlist">Wish list</Link> */}
       </nav>
       <span>Made in New York</span>
     </footer>

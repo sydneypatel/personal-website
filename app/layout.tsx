@@ -9,9 +9,17 @@ import "@fontsource/ibm-plex-mono/latin-500.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://sydney-patel.vercel.app"),
   title: "Sydney Patel — Software Engineer",
   description:
       "Software engineer who designs for the person on the other end. Building human-centered tech, and open to work.",
+  openGraph: {
+    title: "Sydney Patel — Software Engineer",
+    description: "Software engineer building technology for people.",
+    url: "/",
+    siteName: "Sydney Patel",
+    type: "website",
+  },
   robots: { index: false, follow: false },
 };
 
